@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ShoppingCart, User, Package, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingCart, User, Package, ShoppingBag, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/hooks/use-cart';
@@ -45,6 +45,9 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
         <nav className="hidden lg:flex h-full items-center space-x-1 ml-6">
           <NavLink to="/">Home</NavLink>
           <NavLink to="/catalogo">Catálogo Atacado</NavLink>
+          <NavLink to="/ajuda">
+            <HelpCircle className="w-4 h-4 mr-1" /> Ajuda
+          </NavLink>
           
           {isAuthenticated && (
             <>

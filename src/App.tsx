@@ -20,6 +20,9 @@ import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin";
 import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin";
 import ConfiguracoesAdmin from "./pages/ConfiguracoesAdmin";
 import GerenciarPedidosAdmin from "./pages/GerenciarPedidosAdmin";
+import Ajuda from "./pages/Ajuda";
+import ComoFunciona from "./pages/ComoFunciona";
+import Requisitos from "./pages/Requisitos";
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -38,6 +41,9 @@ const App = () => (
               {/* Rotas Públicas */}
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<Index />} />
+              <Route path="/ajuda" element={<Ajuda />} />
+              <Route path="/como-funciona" element={<ComoFunciona />} />
+              <Route path="/requisitos" element={<Requisitos />} />
               
               {/* Rotas Protegidas (Acesso Geral B2B) */}
               <Route element={<ProtectedRoute />}>
