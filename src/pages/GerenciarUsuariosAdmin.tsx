@@ -2,19 +2,22 @@ import React, { useEffect, useState, useCallback } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Users, Edit } from 'lucide-react';
+import { Loader2, Users, Edit, Trash2 } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { supabase } from '@/integrations/supabase/client';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 import { B2BUser, UserRole } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import AdminEditUserModal from '@/components/AdminEditUserModal';
+import { useAuth } from '@/hooks/use-auth';
 
 const GerenciarUsuariosAdmin: React.FC = () => {
+  const { user } = useAuth();
   const [usuarios, setUsuarios] = useState<B2BUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const fetchUsuarios = useCallback(async () => {
     setIsLoading(true);
@@ -48,6 +51,42 @@ const GerenciarUsuariosAdmin: React.FC = () => {
   const handleCloseModal = () => {
     setSelectedUserId(null);
     setIsModalOpen(false);
+  };
+
+  const handleDeleteUser = async (targetUserId: string, userName: string) => {
+    if (!user?.id) {
+      showError("Erro de autenticação.");
+      return;
+    }
+    
+    if (targetUserId === user.id) {
+      showError("Você não pode excluir sua própria conta de administrador.");
+      return;
+    }
+
+    if (!window.confirm(`Tem certeza que deseja excluir o usuário "${userName}"? Esta ação é irreversível e removerá o usuário do sistema de autenticação.`)) {
+      return;
+    }
+
+    setIsDeleting(targetUserId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { targetUserId },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      showSuccess(`Usuário "${userName}" excluído com sucesso.`);
+      fetchUsuarios(); // Recarrega a lista
+    } catch (error: any) {
+      showError("Falha ao excluir usuário: " + error.message);
+      console.error(error);
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const getRoleBadge = (role: UserRole | null) => {
@@ -122,6 +161,19 @@ const GerenciarUsuariosAdmin: React.FC = () => {
                             onClick={() => handleOpenModal(usuario.id)}
                           >
                             <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteUser(usuario.id, usuario.nome_fantasia || usuario.email)}
+                            disabled={isDeleting === usuario.id || usuario.id === user?.id}
+                          >
+                            {isDeleting === usuario.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>
