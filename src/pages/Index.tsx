@@ -3,12 +3,13 @@ import HeaderAtacado from "@/components/HeaderAtacado";
 import HeroCarrossel from "@/components/HeroCarrossel";
 import ProductCardAtacado from "@/components/ProductCardAtacado";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Shirt, ShoppingBag, Star, Truck, Loader2 } from "lucide-react";
+import { ArrowRight, Shirt, ShoppingBag, Star, Truck, Loader2, Zap, Package, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
-import { Link } from 'react-router-dom'; // Importando Link
+import { Link } from 'react-router-dom';
 
 interface Produto {
   id: string;
@@ -16,20 +17,14 @@ interface Produto {
   preco_atacado: number;
   unidade_medida: 'DZ' | 'PC' | 'CX';
   foto_url: string;
-  fornecedor_id: string; // Adicionado
-  categoria: string; // Adicionado para filtro
+  fornecedor_id: string;
+  categoria: string;
 }
 
-const mockCategories = [
-  { name: "Roupas", icon: Shirt },
-  { name: "Calçados", icon: ShoppingBag },
-  { name: "Feminino", icon: ShoppingBag },
-  { name: "Masculino", icon: Shirt },
-];
-
-const mockFornecedores = [
-  { name: "João Confecções", rating: 5, sales: 500 },
-  { name: "Maria Modas", rating: 4.8, sales: 320 },
+const mockBeneficios = [
+  { icon: DollarSign, title: "Preços de Atacado", description: "Margens de lucro maximizadas comprando em dúzias ou caixas." },
+  { icon: Package, title: "Compra Mínima Flexível", description: "Comece com apenas 6 unidades por produto." },
+  { icon: Truck, title: "Entrega Rápida", description: "Logística otimizada para todo o Brasil via Melhor Envio." },
 ];
 
 const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => {
@@ -47,17 +42,19 @@ const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => 
 const Index = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categorias, setCategorias] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProdutos();
+    fetchCategorias();
   }, []);
 
   const fetchProdutos = async () => {
     setIsLoading(true);
-    // Busca os 4 produtos mais recentes (mockando "mais vendidos" por enquanto)
+    // Busca os 4 produtos mais recentes
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria') // Incluindo categoria
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria')
       .order('created_at', { ascending: false })
       .limit(4);
 
@@ -70,20 +67,65 @@ const Index = () => {
     setIsLoading(false);
   };
 
+  const fetchCategorias = async () => {
+    // Busca categorias únicas
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('categoria')
+      .not('categoria', 'is', null);
+
+    if (error) {
+      console.error("Erro ao carregar categorias:", error);
+    } else {
+      const uniqueCategories = Array.from(new Set(data.map(item => item.categoria))).slice(0, 4);
+      setCategorias(uniqueCategories);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-atacado-background">
       <HeaderAtacado />
       
-      <main className="container mx-auto p-4 space-y-8">
+      <main className="container mx-auto p-4 space-y-10">
         
         {/* HERO CARROSSEL ATACADO */}
         <Link to="/catalogo">
           <HeroCarrossel />
         </Link>
 
-        {/* MAIS VENDIDOS ATACADO */}
+        {/* DESTAQUE: POR QUE COMPRAR NO ATACADO BRÁS? */}
+        <section className="text-center">
+          <h2 className="text-3xl font-extrabold text-atacado-primary mb-8">
+            O SEU HUB DE ATACADO B2B
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {mockBeneficios.map((beneficio, index) => (
+              <Card key={index} className="shadow-lg border-t-4 border-atacado-accent hover:shadow-xl transition-shadow">
+                <CardContent className="p-6 flex flex-col items-center">
+                  <beneficio.icon className="w-8 h-8 text-atacado-accent mb-3" />
+                  <h3 className="font-bold text-lg text-atacado-primary mb-1">{beneficio.title}</h3>
+                  <p className="text-sm text-gray-600">{beneficio.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <Separator />
+
+        {/* PRODUTOS EM DESTAQUE */}
         <section>
-          <h2 className="text-2xl font-bold mb-4 text-atacado-primary">MAIS VENDIDOS ATACADO</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-atacado-primary">
+              ✨ NOVIDADES E MELHORES PREÇOS
+            </h2>
+            <Link to="/catalogo">
+              <Button variant="link" className="text-atacado-accent hover:text-orange-600">
+                Ver Catálogo Completo <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
+          
           {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
@@ -103,7 +145,7 @@ const Index = () => {
                   unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
                   unit={product.unidade_medida} 
                   imageUrl={product.foto_url || "/placeholder.svg"} 
-                  fornecedorId={product.fornecedor_id} // Passando fornecedorId
+                  fornecedorId={product.fornecedor_id}
                 />
               ))}
             </div>
@@ -112,48 +154,26 @@ const Index = () => {
 
         <Separator />
 
-        {/* CATEGORIAS ATACADO */}
+        {/* CATEGORIAS EM DESTAQUE */}
         <section>
-          <h2 className="text-2xl font-bold mb-4 text-atacado-primary">CATEGORIAS ATACADO</h2>
+          <h2 className="text-2xl font-bold mb-4 text-atacado-primary">
+            EXPLORE POR CATEGORIA
+          </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {mockCategories.map((category, index) => (
-              <Link 
-                key={index} 
-                to={`/catalogo?categoria=${category.name}`} // Link para o catálogo com filtro
-                className="flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <category.icon className="w-8 h-8 text-atacado-accent mb-2" />
-                <span className="font-medium text-sm text-atacado-primary">{category.name}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <Separator />
-
-        {/* FORNECEDORES TOP BRÁS */}
-        <section>
-          <h2 className="text-2xl font-bold mb-4 text-atacado-primary">FORNECEDORES TOP BRÁS</h2>
-          <div className="space-y-4">
-            {mockFornecedores.map((fornecedor, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 mr-2" />
-                  <div>
-                    <p className="font-semibold text-atacado-primary">{fornecedor.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {fornecedor.rating} ({fornecedor.sales}+ vendas)
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="bg-atacado-accent hover:bg-orange-600 text-white text-sm"
+            {categorias.length > 0 ? (
+              categorias.map((category, index) => (
+                <Link 
+                  key={index} 
+                  to={`/catalogo?categoria=${category}`}
+                  className="flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
                 >
-                  Mapa Brás + WhatsApp <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            ))}
+                  <Shirt className="w-8 h-8 text-atacado-accent mb-2" /> {/* Usando Shirt como ícone genérico */}
+                  <span className="font-medium text-sm text-atacado-primary text-center">{category}</span>
+                </Link>
+              ))
+            ) : (
+              <p className="text-gray-500 col-span-4">Nenhuma categoria encontrada.</p>
+            )}
           </div>
         </section>
         
