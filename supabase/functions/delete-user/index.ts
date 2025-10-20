@@ -1,4 +1,3 @@
-/// <reference types="deno" />
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 // @ts-ignore
@@ -26,7 +25,9 @@ serve(async (req) => {
   // Cliente Supabase com o token JWT do usuário (para verificar a role)
   // @ts-ignore
   const userSupabase = createClient(
+    // @ts-ignore
     Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     {
       global: {
@@ -79,7 +80,9 @@ serve(async (req) => {
   // 3. Cliente Supabase com Service Role Key (para exclusão administrativa)
   // @ts-ignore
   const adminSupabase = createClient(
+    // @ts-ignore
     Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
