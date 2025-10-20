@@ -11,9 +11,10 @@ interface ProductCardProps {
   unitPrice: number;
   unit: 'DZ' | 'PC' | 'CX';
   imageUrl: string;
+  fornecedorId: string; // Novo
 }
 
-const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, unitPrice, unit, imageUrl }) => {
+const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, unitPrice, unit, imageUrl, fornecedorId }) => {
   const { addItem } = useCart();
 
   const handleAddToCart = () => {
@@ -24,6 +25,7 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, uni
       priceAtacado: priceDz,
       unit,
       imageUrl,
+      fornecedorId, // Passando o ID do fornecedor
     }, 1);
   };
 

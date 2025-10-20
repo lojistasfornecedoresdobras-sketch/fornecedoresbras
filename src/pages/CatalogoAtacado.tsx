@@ -14,6 +14,7 @@ interface Produto {
   preco_atacado: number;
   unidade_medida: 'DZ' | 'PC' | 'CX';
   foto_url: string;
+  fornecedor_id: string; // Adicionado
   // Calculamos o preço unitário na renderização
 }
 
@@ -29,7 +30,7 @@ const CatalogoAtacado: React.FC = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url')
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id') // Incluindo fornecedor_id
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -83,6 +84,7 @@ const CatalogoAtacado: React.FC = () => {
                 unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
                 unit={product.unidade_medida} 
                 imageUrl={product.foto_url || "/placeholder.svg"} 
+                fornecedorId={product.fornecedor_id} // Passando fornecedorId
               />
             ))}
           </div>

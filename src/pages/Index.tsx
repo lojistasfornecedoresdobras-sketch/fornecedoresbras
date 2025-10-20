@@ -15,6 +15,7 @@ interface Produto {
   preco_atacado: number;
   unidade_medida: 'DZ' | 'PC' | 'CX';
   foto_url: string;
+  fornecedor_id: string; // Adicionado
 }
 
 const mockCategories = [
@@ -54,7 +55,7 @@ const Index = () => {
     // Busca os 4 produtos mais recentes (mockando "mais vendidos" por enquanto)
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url')
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id') // Incluindo fornecedor_id
       .order('created_at', { ascending: false })
       .limit(4);
 
@@ -98,6 +99,7 @@ const Index = () => {
                   unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
                   unit={product.unidade_medida} 
                   imageUrl={product.foto_url || "/placeholder.svg"} 
+                  fornecedorId={product.fornecedor_id} // Passando fornecedorId
                 />
               ))}
             </div>

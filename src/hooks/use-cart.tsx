@@ -8,6 +8,7 @@ interface CartItem {
   unit: 'DZ' | 'PC' | 'CX';
   quantity: number; // Quantidade de DZ/PC/CX
   imageUrl: string;
+  fornecedorId: string; // Novo
 }
 
 interface CartContextType {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Truck, ShoppingCart, Package, Loader2, ArrowLeft } from 'lucide-react';
@@ -12,9 +12,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 
 // Tipagem para o agrupamento
+interface CartItemWithFornecedor {
+  id: string;
+  name: string;
+  priceAtacado: number;
+  unit: 'DZ' | 'PC' | 'CX';
+  quantity: number;
+  imageUrl: string;
+  fornecedorId: string;
+}
+
 interface GroupedOrder {
   fornecedorId: string;
-  items: typeof useCart extends () => { items: infer T } ? T : never;
+  fornecedorNome: string;
+  items: CartItemWithFornecedor[];
   subtotal: number;
 }
 
@@ -23,34 +34,64 @@ const Checkout: React.FC = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { b2bProfile, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fornecedoresMap, setFornecedoresMap] = useState<Map<string, string>>(new Map());
+  const [isFetchingFornecedores, setIsFetchingFornecedores] = useState(true);
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
   };
 
-  // 1. Agrupar itens por Fornecedor
-  // Para isso, precisamos buscar o fornecedor_id de cada produto no carrinho.
-  // Por enquanto, vamos mockar o fornecedorId, pois o hook useCart não tem essa informação.
-  // Em um cenário real, o CartItem precisaria incluir o fornecedorId.
-  
-  // MOCK: Assumindo que todos os produtos no carrinho pertencem ao mesmo fornecedor (ID FAKE)
-  const MOCK_FORNECEDOR_ID = 'a1b2c3d4-e5f6-7890-1234-567890abcdef'; 
-  const MOCK_FORNECEDOR_NOME = 'Fornecedor Único Mock';
+  // 1. Agrupar itens por Fornecedor e buscar nomes
+  useEffect(() => {
+    const fetchFornecedorNames = async () => {
+      if (items.length === 0) {
+        setIsFetchingFornecedores(false);
+        return;
+      }
+
+      const uniqueFornecedorIds = Array.from(new Set(items.map(item => item.fornecedorId)));
+      
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, nome_fantasia')
+        .in('id', uniqueFornecedorIds);
+
+      if (error) {
+        showError("Erro ao buscar dados dos fornecedores.");
+        console.error(error);
+        setIsFetchingFornecedores(false);
+        return;
+      }
+
+      const map = new Map<string, string>();
+      data.forEach(f => map.set(f.id, f.nome_fantasia || `Fornecedor ID: ${f.id.substring(0, 8)}`));
+      setFornecedoresMap(map);
+      setIsFetchingFornecedores(false);
+    };
+
+    fetchFornecedorNames();
+  }, [items]);
 
   const groupedOrders: GroupedOrder[] = useMemo(() => {
-    if (items.length === 0) return [];
+    if (items.length === 0 || isFetchingFornecedores) return [];
 
-    // Em um cenário real, faríamos uma busca no Supabase para obter o fornecedor_id de cada item.
-    // Para manter a simplicidade e evitar chamadas assíncronas complexas no useMemo:
-    
-    const subtotal = items.reduce((sum, item) => sum + item.priceAtacado * item.quantity, 0);
+    const groups = items.reduce((acc, item) => {
+      const id = item.fornecedorId;
+      if (!acc[id]) {
+        acc[id] = {
+          fornecedorId: id,
+          fornecedorNome: fornecedoresMap.get(id) || `Fornecedor ID: ${id.substring(0, 8)}`,
+          items: [],
+          subtotal: 0,
+        };
+      }
+      acc[id].items.push(item as CartItemWithFornecedor);
+      acc[id].subtotal += item.priceAtacado * item.quantity;
+      return acc;
+    }, {} as Record<string, GroupedOrder>);
 
-    return [{
-      fornecedorId: MOCK_FORNECEDOR_ID,
-      items: items as any, // Ignorando a tipagem complexa do useMemo
-      subtotal: subtotal,
-    }];
-  }, [items]);
+    return Object.values(groups);
+  }, [items, fornecedoresMap, isFetchingFornecedores]);
 
 
   const handleFinalizeOrder = async () => {
@@ -62,46 +103,51 @@ const Checkout: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      // 2. Criar o Pedido Principal (Mockando um único pedido por enquanto)
-      const orderData = {
-        lojista_id: user.id,
-        fornecedor_id: groupedOrders[0].fornecedorId, // Usando o fornecedor mockado
-        total_atacado: groupedOrders[0].subtotal,
-        status: 'Aguardando Pagamento',
-      };
+      let successfulOrders = 0;
 
-      const { data: order, error: orderError } = await supabase
-        .from('pedidos')
-        .insert([orderData])
-        .select()
-        .single();
+      for (const group of groupedOrders) {
+        // 2. Criar o Pedido Principal para cada fornecedor
+        const orderData = {
+          lojista_id: user.id,
+          fornecedor_id: group.fornecedorId,
+          total_atacado: group.subtotal,
+          status: 'Aguardando Pagamento',
+        };
 
-      if (orderError || !order) {
-        throw new Error(orderError?.message || "Falha ao criar o pedido principal.");
+        const { data: order, error: orderError } = await supabase
+          .from('pedidos')
+          .insert([orderData])
+          .select()
+          .single();
+
+        if (orderError || !order) {
+          throw new Error(orderError?.message || `Falha ao criar pedido para ${group.fornecedorNome}.`);
+        }
+
+        const pedidoId = order.id;
+
+        // 3. Criar os Itens do Pedido
+        const orderItemsData = group.items.map(item => ({
+          pedido_id: pedidoId,
+          produto_id: item.id,
+          quantidade_dz_pc_cx: item.quantity,
+          preco_unitario_atacado: item.priceAtacado,
+          subtotal_atacado: item.priceAtacado * item.quantity,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('itens_pedido')
+          .insert(orderItemsData);
+
+        if (itemsError) {
+          throw new Error(itemsError.message || `Falha ao inserir itens do pedido #${pedidoId.substring(0, 8)}.`);
+        }
+        successfulOrders++;
       }
 
-      const pedidoId = order.id;
-
-      // 3. Criar os Itens do Pedido
-      const orderItemsData = groupedOrders[0].items.map(item => ({
-        pedido_id: pedidoId,
-        produto_id: item.id,
-        quantidade_dz_pc_cx: item.quantity,
-        preco_unitario_atacado: item.priceAtacado,
-        subtotal_atacado: item.priceAtacado * item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('itens_pedido')
-        .insert(orderItemsData);
-
-      if (itemsError) {
-        throw new Error(itemsError.message || "Falha ao inserir itens do pedido.");
-      }
-
-      showSuccess(`Pedido #${pedidoId.substring(0, 8)} criado com sucesso! Aguardando pagamento.`);
+      showSuccess(`Sucesso! ${successfulOrders} pedido(s) criado(s). Aguardando pagamento.`);
       clearCart();
-      navigate('/perfil'); // Redireciona para o perfil ou página de pedidos
+      navigate('/meus-pedidos'); // Redireciona para a página de pedidos do lojista
       
     } catch (error: any) {
       console.error("Erro no Checkout:", error);
@@ -126,6 +172,15 @@ const Checkout: React.FC = () => {
       </div>
     );
   }
+  
+  if (isFetchingFornecedores) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-atacado-background">
+        <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
+        <p className="ml-3 text-atacado-primary">Preparando resumo do pedido...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-atacado-background">
@@ -136,15 +191,15 @@ const Checkout: React.FC = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate('/carrinho')}>
             <ArrowLeft className="w-6 h-6 text-atacado-primary" />
           </Button>
-          <h1 className="text-3xl font-bold text-atacado-primary">FINALIZAR PEDIDO</h1>
+          <h1 className="text-3xl font-bold text-atacado-primary">FINALIZAR PEDIDO ({groupedOrders.length} Fornecedor{groupedOrders.length > 1 ? 'es' : ''})</h1>
         </div>
 
         {groupedOrders.map((group, index) => (
-          <Card key={index} className="shadow-lg">
+          <Card key={group.fornecedorId} className="shadow-lg">
             <CardHeader className="bg-gray-50 border-b">
               <CardTitle className="text-xl text-atacado-primary flex items-center">
                 <Package className="w-5 h-5 mr-2" />
-                Pedido para: {MOCK_FORNECEDOR_NOME}
+                Pedido para: {group.fornecedorNome}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
@@ -186,17 +241,24 @@ const Checkout: React.FC = () => {
                 <span>TOTAL A PAGAR</span>
                 <span>{formatCurrency(group.subtotal)}</span>
               </div>
-
-              <Button 
-                className="w-full bg-atacado-accent hover:bg-orange-600 text-white font-bold py-3 mt-4"
-                onClick={handleFinalizeOrder}
-                disabled={isProcessing}
-              >
-                {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : 'CONFIRMAR PEDIDO E PAGAR'}
-              </Button>
             </CardContent>
           </Card>
         ))}
+        
+        {/* Botão de Finalização Global */}
+        <Card className="shadow-lg p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-atacado-primary">TOTAL GERAL</h2>
+            <span className="text-3xl font-bold text-atacado-accent">{formatCurrency(totalPrice)}</span>
+          </div>
+          <Button 
+            className="w-full bg-atacado-accent hover:bg-orange-600 text-white font-bold py-3"
+            onClick={handleFinalizeOrder}
+            disabled={isProcessing}
+          >
+            {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : `CONFIRMAR ${groupedOrders.length} PEDIDO(S) E PAGAR`}
+          </Button>
+        </Card>
       </main>
 
       <footer className="mt-10 bg-atacado-primary text-white p-4 text-center">
