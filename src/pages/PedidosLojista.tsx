@@ -9,6 +9,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
+import PedidoDetalhesLojistaModal from '@/components/PedidoDetalhesLojistaModal'; // Importando o novo modal
 
 interface Pedido {
   id: string;
@@ -23,6 +24,8 @@ const PedidosLojista: React.FC = () => {
   const { b2bProfile, isLoading: isAuthLoading, user } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPedidoId, setSelectedPedidoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthLoading && user) {
@@ -48,6 +51,16 @@ const PedidosLojista: React.FC = () => {
       setPedidos(data as Pedido[]);
     }
     setIsLoading(false);
+  };
+
+  const handleOpenModal = (pedidoId: string) => {
+    setSelectedPedidoId(pedidoId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPedidoId(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -149,7 +162,12 @@ const PedidosLojista: React.FC = () => {
                       <TableCell className="text-center">{getStatusBadge(pedido.status)}</TableCell>
                       <TableCell className="text-center text-sm">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell className="text-center">
-                        <Button variant="ghost" size="sm" className="text-atacado-primary">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-atacado-primary"
+                          onClick={() => handleOpenModal(pedido.id)}
+                        >
                           Detalhes <ArrowRight className="w-4 h-4 ml-1" />
                         </Button>
                       </TableCell>
@@ -168,6 +186,12 @@ const PedidosLojista: React.FC = () => {
         </p>
         <MadeWithDyad />
       </footer>
+
+      <PedidoDetalhesLojistaModal
+        pedidoId={selectedPedidoId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };
