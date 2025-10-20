@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
 
 // Tipagem para o agrupamento
 interface CartItemWithFornecedor {
@@ -34,53 +35,32 @@ const Checkout: React.FC = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { b2bProfile, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [fornecedoresMap, setFornecedoresMap] = useState<Map<string, string>>(new Map());
-  const [isFetchingFornecedores, setIsFetchingFornecedores] = useState(true);
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
   };
 
-  // 1. Agrupar itens por Fornecedor e buscar nomes
-  useEffect(() => {
-    const fetchFornecedorNames = async () => {
-      if (items.length === 0) {
-        setIsFetchingFornecedores(false);
-        return;
-      }
+  // 1. Identificar IDs únicos dos fornecedores no carrinho
+  const uniqueFornecedorIds = useMemo(() => 
+    Array.from(new Set(items.map(item => item.fornecedorId))), 
+    [items]
+  );
 
-      const uniqueFornecedorIds = Array.from(new Set(items.map(item => item.fornecedorId)));
-      
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nome_fantasia')
-        .in('id', uniqueFornecedorIds);
+  // 2. Buscar nomes fantasia dos fornecedores
+  const { userNames: fornecedoresMap, isLoading: isFetchingFornecedores } = useB2BUserNames(uniqueFornecedorIds);
 
-      if (error) {
-        showError("Erro ao buscar dados dos fornecedores.");
-        console.error(error);
-        setIsFetchingFornecedores(false);
-        return;
-      }
-
-      const map = new Map<string, string>();
-      data.forEach(f => map.set(f.id, f.nome_fantasia || `Fornecedor ID: ${f.id.substring(0, 8)}`));
-      setFornecedoresMap(map);
-      setIsFetchingFornecedores(false);
-    };
-
-    fetchFornecedorNames();
-  }, [items]);
-
+  // 3. Agrupar itens por Fornecedor
   const groupedOrders: GroupedOrder[] = useMemo(() => {
     if (items.length === 0 || isFetchingFornecedores) return [];
 
     const groups = items.reduce((acc, item) => {
       const id = item.fornecedorId;
+      const fornecedorNome = fornecedoresMap[id] || `Fornecedor ID: ${id.substring(0, 8)}`;
+
       if (!acc[id]) {
         acc[id] = {
           fornecedorId: id,
-          fornecedorNome: fornecedoresMap.get(id) || `Fornecedor ID: ${id.substring(0, 8)}`,
+          fornecedorNome: fornecedorNome,
           items: [],
           subtotal: 0,
         };
