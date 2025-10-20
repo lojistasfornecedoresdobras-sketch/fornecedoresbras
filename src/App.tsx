@@ -16,7 +16,8 @@ import PedidosFornecedor from "./pages/PedidosFornecedor";
 import PedidosLojista from "./pages/PedidosLojista";
 import EditarProduto from "./pages/EditarProduto";
 import DashboardAdmin from "./pages/DashboardAdmin";
-import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin"; // Importando a nova página
+import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin";
+import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin"; // Importando a nova página
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -57,7 +58,7 @@ const App = () => (
               <Route element={<ProtectedRoute allowedRoles={['administrador']} />}>
                 <Route path="/admin" element={<DashboardAdmin />} />
                 <Route path="/admin/usuarios" element={<GerenciarUsuariosAdmin />} />
-                {/* Rotas futuras do admin: /admin/produtos, /admin/config, etc. */}
+                <Route path="/admin/produtos" element={<GerenciarProdutosAdmin />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
