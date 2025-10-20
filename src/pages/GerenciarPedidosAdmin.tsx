@@ -8,8 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { PedidoStatus } from '@/types/pedido';
 import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
-import PedidoDetalhesFornecedorModal from '@/components/PedidoDetalhesFornecedorModal'; // Reutilizando o modal de detalhes
-import { Button } from '@/components/ui/button'; // Adicionado
+import AdminPedidoDetalhesModal from '@/components/AdminPedidoDetalhesModal'; // Usando o novo modal
+import { Button } from '@/components/ui/button';
 
 interface Pedido {
   id: string;
@@ -180,8 +180,7 @@ const GerenciarPedidosAdmin: React.FC = () => {
         </footer>
       </div>
 
-      {/* Reutiliza o modal de fornecedor, pois ele tem a lógica de atualização de status e frete */}
-      <PedidoDetalhesFornecedorModal
+      <AdminPedidoDetalhesModal
         pedidoId={selectedPedidoId}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
