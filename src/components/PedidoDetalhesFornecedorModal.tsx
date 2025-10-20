@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,19 +45,7 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
   const [rastreioInput, setRastreioInput] = useState('');
   const [transportadoraInput, setTransportadoraInput] = useState('');
 
-  useEffect(() => {
-    if (isOpen && pedidoId) {
-      fetchPedidoDetalhes(pedidoId);
-    } else {
-      setPedido(null);
-      setFrete(null);
-      setNewStatus('');
-      setRastreioInput('');
-      setTransportadoraInput('');
-    }
-  }, [isOpen, pedidoId]);
-
-  const fetchFrete = async (pedidoId: string) => {
+  const fetchFrete = useCallback(async (pedidoId: string) => {
     const { data, error } = await supabase
       .from('fretes')
       .select('codigo_rastreio, transportadora, status')
@@ -74,10 +62,12 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       setTransportadoraInput(data.transportadora || '');
     } else {
       setFrete(null);
+      setRastreioInput('');
+      setTransportadoraInput('');
     }
-  };
+  }, []);
 
-  const fetchPedidoDetalhes = async (id: string) => {
+  const fetchPedidoDetalhes = useCallback(async (id: string) => {
     setIsLoading(true);
     
     const { data, error } = await supabase
@@ -105,7 +95,17 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       await fetchFrete(id);
     }
     setIsLoading(false);
-  };
+  }, [fetchFrete]);
+
+  useEffect(() => {
+    if (isOpen && pedidoId) {
+      fetchPedidoDetalhes(pedidoId);
+    } else {
+      setPedido(null);
+      setFrete(null);
+      setNewStatus('');
+    }
+  }, [isOpen, pedidoId, fetchPedidoDetalhes]);
 
   // Hooks para buscar nomes
   const productIds = pedido?.itens_pedido.map(item => item.produto_id) || [];
@@ -116,23 +116,24 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
   const lojistaNome = lojistaNames[lojistaId[0]] || (lojistaId[0] ? `Lojista ID: ${lojistaId[0].substring(0, 8)}` : 'N/A');
 
 
-  const handleUpdateStatus = async () => {
-    if (!pedido || newStatus === pedido.status) return;
+  const handleUpdateStatus = async (statusToUpdate: PedidoStatus | string) => {
+    if (!pedido || statusToUpdate === pedido.status) return;
 
     setIsUpdating(true);
     
     const { error } = await supabase
       .from('pedidos')
-      .update({ status: newStatus })
+      .update({ status: statusToUpdate })
       .eq('id', pedido.id);
 
     if (error) {
       showError("Erro ao atualizar status: " + error.message);
       console.error(error);
     } else {
-      showSuccess(`Status do pedido #${pedido.id.substring(0, 8)} atualizado para: ${newStatus}`);
+      showSuccess(`Status do pedido #${pedido.id.substring(0, 8)} atualizado para: ${statusToUpdate}`);
       onUpdate(); // Atualiza a lista na página pai
-      setPedido(prev => prev ? { ...prev, status: newStatus as PedidoStatus } : null);
+      setPedido(prev => prev ? { ...prev, status: statusToUpdate as PedidoStatus } : null);
+      setNewStatus(statusToUpdate); // Atualiza o select
     }
     setIsUpdating(false);
   };
@@ -164,12 +165,14 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       console.error(error);
     } else {
       showSuccess("Dados de frete salvos com sucesso!");
-      // Atualiza o status do pedido para 'Em Processamento' se ainda estiver 'Aguardando Pagamento'
+      
+      // 1. Recarrega os dados de frete
+      await fetchFrete(pedidoId); 
+
+      // 2. Atualiza o status do pedido para 'Em Processamento' se for o status inicial
       if (pedido?.status === 'Aguardando Pagamento') {
-        setNewStatus('Em Processamento');
-        handleUpdateStatus(); // Chama a atualização de status
+        await handleUpdateStatus('Em Processamento');
       }
-      fetchFrete(pedidoId); // Recarrega os dados de frete
     }
     setIsSavingFrete(false);
   };
@@ -321,7 +324,7 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
                   </SelectContent>
                 </Select>
                 <Button 
-                  onClick={handleUpdateStatus}
+                  onClick={() => handleUpdateStatus(newStatus)}
                   disabled={isUpdating || newStatus === pedido.status || pedido.status === 'Concluído' || pedido.status === 'Cancelado'}
                   className="bg-atacado-accent hover:bg-orange-600"
                 >
