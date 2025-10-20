@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Settings, LogOut, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { name: 'Gerenciar Pedidos', href: '/admin/pedidos', icon: ShoppingCart },
   { name: 'Gerenciar Produtos', href: '/admin/produtos', icon: Package },
   { name: 'Gerenciar Usuários', href: '/admin/usuarios', icon: Users },
   { name: 'Configurações', href: '/admin/config', icon: Settings },
