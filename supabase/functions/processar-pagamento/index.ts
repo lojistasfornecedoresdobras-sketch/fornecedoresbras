@@ -27,7 +27,9 @@ serve(async (req) => {
   // Cria o cliente Supabase com o token JWT do usuário
   // @ts-ignore
   const supabase = createClient(
+    // @ts-ignore
     Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     {
       global: {
