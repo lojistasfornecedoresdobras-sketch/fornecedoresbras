@@ -17,7 +17,8 @@ import PedidosLojista from "./pages/PedidosLojista";
 import EditarProduto from "./pages/EditarProduto";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin";
-import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin"; // Importando a nova página
+import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin";
+import ConfiguracoesAdmin from "./pages/ConfiguracoesAdmin"; // Importando a nova página
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/admin" element={<DashboardAdmin />} />
                 <Route path="/admin/usuarios" element={<GerenciarUsuariosAdmin />} />
                 <Route path="/admin/produtos" element={<GerenciarProdutosAdmin />} />
+                <Route path="/admin/config" element={<ConfiguracoesAdmin />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
