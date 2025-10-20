@@ -39,7 +39,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     quantidade_estoque: '',
     unidade_medida: '',
     categoria: '',
-    minimo_compra: '12',
+    minimo_compra: '6', // Alterado de '12' para '6'
     foto_url: '/placeholder.svg',
   });
 
@@ -113,7 +113,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
           quantidade_estoque: '',
           unidade_medida: '',
           categoria: '',
-          minimo_compra: '12',
+          minimo_compra: '6', // Alterado para '6'
           foto_url: '/placeholder.svg',
         });
       }
@@ -143,7 +143,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="space-y-2 col-span-2 md:col-span-1">
           <Label htmlFor="minimo_compra">Mínimo Compra (Unidades)</Label>
-          <Input id="minimo_compra" type="number" placeholder="12" required value={formData.minimo_compra} onChange={handleChange} />
+          <Input id="minimo_compra" type="number" placeholder="6" required value={formData.minimo_compra} onChange={handleChange} />
         </div>
         <div className="space-y-2 col-span-2 md:col-span-1">
           <Label htmlFor="quantidade_estoque">Estoque (Unidades)</Label>
