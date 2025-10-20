@@ -62,6 +62,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Custom B2B Atacado Colors
+        'atacado-primary': {
+          DEFAULT: '#1E3A8A', // Dark Blue
+          foreground: '#FFFFFF',
+        },
+        'atacado-accent': {
+          DEFAULT: '#F97316', // Orange
+          foreground: '#FFFFFF',
+        },
+        'atacado-background': '#F3F4F6', // Light Gray
       },
       borderRadius: {
         lg: "var(--radius)",

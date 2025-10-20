@@ -1,0 +1,46 @@
+import React from 'react';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
+
+interface ProductCardProps {
+  name: string;
+  priceDz: number;
+  unitPrice: number;
+  unit: 'DZ' | 'PC' | 'CX';
+  imageUrl: string;
+}
+
+const ProductCardAtacado: React.FC<ProductCardProps> = ({ name, priceDz, unitPrice, unit, imageUrl }) => {
+  return (
+    <Card className="w-full bg-white shadow-md hover:shadow-lg transition-shadow">
+      <CardHeader className="p-0">
+        <img 
+          src={imageUrl} 
+          alt={name} 
+          className="w-full h-40 object-cover rounded-t-lg"
+        />
+      </CardHeader>
+      <CardContent className="p-3">
+        <h3 className="font-semibold text-lg mb-1 truncate">{name}</h3>
+        <p className="text-xl font-bold text-atacado-accent">
+          {unit === 'DZ' ? `R$${priceDz.toFixed(2)}/DZ` : `R$${priceDz.toFixed(2)}/${unit}`}
+        </p>
+        <p className="text-sm text-gray-500">
+          (R${unitPrice.toFixed(2)}/un)
+        </p>
+      </CardContent>
+      <CardFooter className="p-3 pt-0">
+        <Button 
+          className="w-full bg-atacado-accent hover:bg-orange-600 text-white text-sm"
+          size="sm"
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          ADICIONAR 1 {unit}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default ProductCardAtacado;
