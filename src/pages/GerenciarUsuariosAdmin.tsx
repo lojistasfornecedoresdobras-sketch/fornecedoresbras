@@ -2,23 +2,25 @@ import React, { useEffect, useState, useCallback } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Users, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Users, Edit } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { B2BUser, UserRole } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
+import AdminEditUserModal from '@/components/AdminEditUserModal';
 
 const GerenciarUsuariosAdmin: React.FC = () => {
   const [usuarios, setUsuarios] = useState<B2BUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const fetchUsuarios = useCallback(async () => {
     setIsLoading(true);
     
     // Nota: Administradores podem ler todos os usuários devido à política RLS
     // que deve ser configurada para permitir acesso total ao admin.
-    // Assumindo que o admin tem permissão de leitura total na tabela 'usuarios'.
     const { data, error } = await supabase
       .from('usuarios')
       .select('*')
@@ -37,6 +39,16 @@ const GerenciarUsuariosAdmin: React.FC = () => {
   useEffect(() => {
     fetchUsuarios();
   }, [fetchUsuarios]);
+
+  const handleOpenModal = (userId: string) => {
+    setSelectedUserId(userId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedUserId(null);
+    setIsModalOpen(false);
+  };
 
   const getRoleBadge = (role: UserRole | null) => {
     let classes = "px-2 py-1 rounded-full text-xs font-medium";
@@ -103,10 +115,14 @@ const GerenciarUsuariosAdmin: React.FC = () => {
                           {getRoleBadge(usuario.role)}
                         </TableCell>
                         <TableCell className="text-center space-x-2">
-                          <Button variant="ghost" size="icon" className="text-atacado-primary">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-atacado-primary"
+                            onClick={() => handleOpenModal(usuario.id)}
+                          >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          {/* Futuramente: Botão para aprovar/rejeitar ou mudar role */}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -121,6 +137,13 @@ const GerenciarUsuariosAdmin: React.FC = () => {
           <MadeWithDyad />
         </footer>
       </div>
+
+      <AdminEditUserModal
+        userId={selectedUserId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onUserUpdated={fetchUsuarios} // Recarrega a lista após a atualização
+      />
     </div>
   );
 };
