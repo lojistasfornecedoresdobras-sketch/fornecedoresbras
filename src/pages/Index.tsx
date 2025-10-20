@@ -3,15 +3,19 @@ import HeaderAtacado from "@/components/HeaderAtacado";
 import HeroCarrossel from "@/components/HeroCarrossel";
 import ProductCardAtacado from "@/components/ProductCardAtacado";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Shirt, ShoppingBag, Star, Truck } from "lucide-react";
+import { ArrowRight, Shirt, ShoppingBag, Star, Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from "react";
+import { supabase } from '@/integrations/supabase/client';
+import { showError } from '@/utils/toast';
 
-const mockProducts = [
-  { name: "Camiseta Polo", priceDz: 120.00, unitPrice: 10.00, unit: 'DZ' as const, imageUrl: "/placeholder.svg" },
-  { name: "Calça Jeans", priceDz: 450.00, unitPrice: 37.50, unit: 'CX' as const, imageUrl: "/placeholder.svg" },
-  { name: "Vestido Casual", priceDz: 180.00, unitPrice: 15.00, unit: 'DZ' as const, imageUrl: "/placeholder.svg" },
-  { name: "Tênis Esportivo", priceDz: 600.00, unitPrice: 50.00, unit: 'PC' as const, imageUrl: "/placeholder.svg" },
-];
+interface Produto {
+  id: string;
+  nome: string;
+  preco_atacado: number;
+  unidade_medida: 'DZ' | 'PC' | 'CX';
+  foto_url: string;
+}
 
 const mockCategories = [
   { name: "Roupas", icon: Shirt },
@@ -25,7 +29,44 @@ const mockFornecedores = [
   { name: "Maria Modas", rating: 4.8, sales: 320 },
 ];
 
+const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => {
+  switch (unit) {
+    case 'DZ':
+      return price / 12;
+    case 'CX':
+      return price / 100;
+    case 'PC':
+    default:
+      return price;
+  }
+};
+
 const Index = () => {
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProdutos();
+  }, []);
+
+  const fetchProdutos = async () => {
+    setIsLoading(true);
+    // Busca os 4 produtos mais recentes (mockando "mais vendidos" por enquanto)
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('id, nome, preco_atacado, unidade_medida, foto_url')
+      .order('created_at', { ascending: false })
+      .limit(4);
+
+    if (error) {
+      showError("Erro ao carregar produtos: " + error.message);
+      console.error(error);
+    } else {
+      setProdutos(data as Produto[]);
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-atacado-background">
       <HeaderAtacado />
@@ -38,11 +79,29 @@ const Index = () => {
         {/* MAIS VENDIDOS ATACADO */}
         <section>
           <h2 className="text-2xl font-bold mb-4 text-atacado-primary">MAIS VENDIDOS ATACADO</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {mockProducts.slice(0, 4).map((product, index) => (
-              <ProductCardAtacado key={index} {...product} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
+            </div>
+          ) : produtos.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">
+              Nenhum produto disponível.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {produtos.map((product) => (
+                <ProductCardAtacado 
+                  key={product.id} 
+                  id={product.id}
+                  name={product.nome} 
+                  priceDz={product.preco_atacado} 
+                  unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
+                  unit={product.unidade_medida} 
+                  imageUrl={product.foto_url || "/placeholder.svg"} 
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         <Separator />

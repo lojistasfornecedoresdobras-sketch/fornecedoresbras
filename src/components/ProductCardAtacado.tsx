@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
+  id: string; // Adicionando ID
   name: string;
   priceDz: number;
   unitPrice: number;
@@ -11,7 +12,12 @@ interface ProductCardProps {
   imageUrl: string;
 }
 
-const ProductCardAtacado: React.FC<ProductCardProps> = ({ name, priceDz, unitPrice, unit, imageUrl }) => {
+const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, unitPrice, unit, imageUrl }) => {
+  const handleAddToCart = () => {
+    console.log(`Adicionar 1 ${unit} do produto ${id} ao carrinho.`);
+    // Lógica de adicionar ao carrinho aqui
+  };
+
   return (
     <Card className="w-full bg-white shadow-md hover:shadow-lg transition-shadow">
       <CardHeader className="p-0">
@@ -34,6 +40,7 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({ name, priceDz, unitPri
         <Button 
           className="w-full bg-atacado-accent hover:bg-orange-600 text-white text-sm"
           size="sm"
+          onClick={handleAddToCart}
         >
           <ShoppingCart className="w-4 h-4 mr-2" />
           ADICIONAR 1 {unit}
