@@ -11,6 +11,7 @@ import PerfilB2B from "./pages/PerfilB2B";
 import EstoqueFornecedor from "./pages/EstoqueFornecedor";
 import CadastroProduto from "./pages/CadastroProduto";
 import { AuthProvider } from "./hooks/use-auth";
+import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -22,26 +23,30 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            {/* Rotas Públicas */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Index />} />
-            
-            {/* Rotas Protegidas (Acesso Geral B2B) */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/catalogo" element={<CatalogoAtacado />} />
-              <Route path="/perfil" element={<PerfilB2B />} />
-            </Route>
+          <CartProvider> {/* Adicionando CartProvider aqui */}
+            <Routes>
+              {/* Rotas Públicas */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Index />} />
+              
+              {/* Rotas Protegidas (Acesso Geral B2B) */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/catalogo" element={<CatalogoAtacado />} />
+                <Route path="/perfil" element={<PerfilB2B />} />
+                <Route path="/carrinho" element={<div>Página do Carrinho (A ser implementada)</div>} />
+                <Route path="/checkout" element={<div>Página de Checkout (A ser implementada)</div>} />
+              </Route>
 
-            {/* Rotas Protegidas (Acesso Apenas Fornecedor) */}
-            <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
-              <Route path="/estoque" element={<EstoqueFornecedor />} />
-              <Route path="/cadastro-produto" element={<CadastroProduto />} />
-            </Route>
+              {/* Rotas Protegidas (Acesso Apenas Fornecedor) */}
+              <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
+                <Route path="/estoque" element={<EstoqueFornecedor />} />
+                <Route path="/cadastro-produto" element={<CadastroProduto />} />
+              </Route>
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </CartProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

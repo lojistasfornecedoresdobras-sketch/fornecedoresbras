@@ -2,9 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import { useCart } from '@/hooks/use-cart';
 
 interface ProductCardProps {
-  id: string; // Adicionando ID
+  id: string;
   name: string;
   priceDz: number;
   unitPrice: number;
@@ -13,9 +14,17 @@ interface ProductCardProps {
 }
 
 const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, unitPrice, unit, imageUrl }) => {
+  const { addItem } = useCart();
+
   const handleAddToCart = () => {
-    console.log(`Adicionar 1 ${unit} do produto ${id} ao carrinho.`);
-    // Lógica de adicionar ao carrinho aqui
+    // Por padrão, adicionamos 1 unidade de atacado (1 DZ, 1 PC ou 1 CX)
+    addItem({
+      id,
+      name,
+      priceAtacado: priceDz,
+      unit,
+      imageUrl,
+    }, 1);
   };
 
   return (
