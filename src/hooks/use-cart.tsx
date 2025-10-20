@@ -9,6 +9,11 @@ interface CartItem {
   quantity: number; // Quantidade de DZ/PC/CX
   imageUrl: string;
   fornecedorId: string; // Novo
+  // Campos de Frete
+  peso_kg: number;
+  comprimento_cm: number;
+  largura_cm: number;
+  altura_cm: number;
 }
 
 interface CartContextType {

@@ -11,10 +11,27 @@ interface ProductCardProps {
   unitPrice: number;
   unit: 'DZ' | 'PC' | 'CX';
   imageUrl: string;
-  fornecedorId: string; // Novo
+  fornecedorId: string;
+  // Campos de Frete
+  peso_kg: number;
+  comprimento_cm: number;
+  largura_cm: number;
+  altura_cm: number;
 }
 
-const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, unitPrice, unit, imageUrl, fornecedorId }) => {
+const ProductCardAtacado: React.FC<ProductCardProps> = ({ 
+  id, 
+  name, 
+  priceDz, 
+  unitPrice, 
+  unit, 
+  imageUrl, 
+  fornecedorId,
+  peso_kg,
+  comprimento_cm,
+  largura_cm,
+  altura_cm
+}) => {
   const { addItem } = useCart();
 
   const handleAddToCart = () => {
@@ -25,7 +42,11 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({ id, name, priceDz, uni
       priceAtacado: priceDz,
       unit,
       imageUrl,
-      fornecedorId, // Passando o ID do fornecedor
+      fornecedorId,
+      peso_kg,
+      comprimento_cm,
+      largura_cm,
+      altura_cm,
     }, 1);
   };
 

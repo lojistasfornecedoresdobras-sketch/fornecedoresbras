@@ -19,6 +19,11 @@ interface Produto {
   foto_url: string;
   fornecedor_id: string;
   categoria: string;
+  // Campos de Frete
+  peso_kg: number;
+  comprimento_cm: number;
+  largura_cm: number;
+  altura_cm: number;
 }
 
 const mockBeneficios = [
@@ -51,10 +56,10 @@ const Index = () => {
 
   const fetchProdutos = async () => {
     setIsLoading(true);
-    // Busca os 4 produtos mais recentes
+    // Busca os 4 produtos mais recentes, incluindo os campos de frete
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria')
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria, peso_kg, comprimento_cm, largura_cm, altura_cm')
       .order('created_at', { ascending: false })
       .limit(4);
 
@@ -146,6 +151,10 @@ const Index = () => {
                   unit={product.unidade_medida} 
                   imageUrl={product.foto_url || "/placeholder.svg"} 
                   fornecedorId={product.fornecedor_id}
+                  peso_kg={product.peso_kg}
+                  comprimento_cm={product.comprimento_cm}
+                  largura_cm={product.largura_cm}
+                  altura_cm={product.altura_cm}
                 />
               ))}
             </div>

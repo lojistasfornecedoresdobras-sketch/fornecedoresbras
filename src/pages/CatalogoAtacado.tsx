@@ -16,6 +16,11 @@ interface Produto {
   foto_url: string;
   fornecedor_id: string; // Adicionado
   categoria: string; // Adicionado para filtro
+  // Campos de Frete
+  peso_kg: number;
+  comprimento_cm: number;
+  largura_cm: number;
+  altura_cm: number;
 }
 
 type SortOrder = 'created_at_desc' | 'preco_atacado_asc' | 'preco_atacado_desc';
@@ -33,7 +38,7 @@ const CatalogoAtacado: React.FC = () => {
     
     let query = supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria');
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria, peso_kg, comprimento_cm, largura_cm, altura_cm');
 
     // 1. Filtro de Busca (Nome)
     if (term) {
@@ -147,6 +152,10 @@ const CatalogoAtacado: React.FC = () => {
                 unit={product.unidade_medida} 
                 imageUrl={product.foto_url || "/placeholder.svg"} 
                 fornecedorId={product.fornecedor_id}
+                peso_kg={product.peso_kg}
+                comprimento_cm={product.comprimento_cm}
+                largura_cm={product.largura_cm}
+                altura_cm={product.altura_cm}
               />
             ))}
           </div>
