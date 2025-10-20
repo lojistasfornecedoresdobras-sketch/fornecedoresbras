@@ -7,6 +7,7 @@ import { Loader2, Package, Truck, CheckCircle, XCircle, CreditCard, MapPin } fro
 import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
+import { useProductNames } from '@/hooks/use-product-names';
 
 interface PedidoDetalhesLojistaModalProps {
   pedidoId: string | null;
@@ -73,6 +74,10 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
     setIsLoading(false);
   };
 
+  // Extrai IDs dos produtos para buscar os nomes
+  const productIds = pedido?.itens_pedido.map(item => item.produto_id) || [];
+  const { productNames, isLoading: isProductNamesLoading } = useProductNames(productIds);
+
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
   };
@@ -111,6 +116,8 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
     );
   };
 
+  const isContentLoading = isLoading || isProductNamesLoading;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -121,7 +128,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
+        {isContentLoading ? (
           <div className="flex justify-center items-center h-40">
             <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
           </div>
@@ -171,7 +178,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
               {pedido.itens_pedido.map((item, index) => (
                 <div key={index} className="flex justify-between text-sm border-b pb-1">
                   <p className="text-gray-700">
-                    {item.quantidade_dz_pc_cx}x (ID Produto: {item.produto_id.substring(0, 8)})
+                    {item.quantidade_dz_pc_cx}x {productNames[item.produto_id] || `Produto ID: ${item.produto_id.substring(0, 8)}`}
                   </p>
                   <p className="font-medium text-right">
                     {formatCurrency(item.subtotal_atacado)}
