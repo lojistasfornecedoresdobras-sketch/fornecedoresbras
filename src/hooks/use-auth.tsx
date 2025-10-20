@@ -36,8 +36,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentUser) {
         const profile = await fetchB2BProfile(currentUser.id);
         setB2BProfile(profile);
+        console.log("Auth: Perfil B2B carregado:", profile); // LOG DE DEBUG
       } else {
         setB2BProfile(null);
+        console.log("Auth: Usuário deslogado."); // LOG DE DEBUG
       }
       setIsLoading(false);
     };
