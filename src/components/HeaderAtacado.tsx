@@ -1,17 +1,26 @@
 import React from 'react';
-import { Search, ShoppingCart, User } from 'lucide-react';
+import { Search, ShoppingCart, User, Package, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/hooks/use-cart';
+import { useAuth } from '@/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface HeaderAtacadoProps {
   onSearchChange?: (term: string) => void;
 }
 
+const NavLink: React.FC<{ to: string, children: React.ReactNode }> = ({ to, children }) => (
+  <Link to={to} className="text-sm font-medium text-gray-700 hover:text-atacado-primary transition-colors hidden lg:inline-flex items-center h-full px-3">
+    {children}
+  </Link>
+);
+
 const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
   const { totalItems } = useCart();
+  const { isAuthenticated, b2bProfile } = useAuth();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onSearchChange) {
@@ -19,13 +28,44 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
     }
   };
 
+  const isFornecedor = b2bProfile?.role === 'fornecedor';
+  const isLojista = b2bProfile?.role === 'lojista';
+  const isAdmin = b2bProfile?.role === 'administrador';
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-40 w-full border-b bg-white shadow-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        
         {/* Logo */}
-        <Link to="/" className="text-xl font-bold text-atacado-primary hover:opacity-80 transition-opacity">
+        <Link to="/" className="text-xl font-bold text-atacado-primary hover:opacity-80 transition-opacity min-w-max">
           Fornecedores do Brás
         </Link>
+
+        {/* Navegação Principal (Desktop) */}
+        <nav className="hidden lg:flex h-full items-center space-x-1 ml-6">
+          <NavLink to="/">Home</NavLink>
+          <NavLink to="/catalogo">Catálogo Atacado</NavLink>
+          
+          {isAuthenticated && (
+            <>
+              {isFornecedor && (
+                <NavLink to="/estoque">
+                  <Package className="w-4 h-4 mr-1" /> Meu Estoque
+                </NavLink>
+              )}
+              {isLojista && (
+                <NavLink to="/meus-pedidos">
+                  <ShoppingBag className="w-4 h-4 mr-1" /> Meus Pedidos
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink to="/admin">
+                  <User className="w-4 h-4 mr-1" /> Painel Admin
+                </NavLink>
+              )}
+            </>
+          )}
+        </nav>
 
         {/* Search (Hidden on small screens for mobile focus) */}
         <div className="hidden md:flex flex-1 max-w-md mx-4">
@@ -40,7 +80,7 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
         </div>
 
         {/* Navigation Icons (Mobile friendly) */}
-        <nav className="flex items-center space-x-2">
+        <nav className="flex items-center space-x-2 min-w-max">
           <Button variant="ghost" size="icon" className="md:hidden">
             <Search className="h-5 w-5" />
           </Button>
@@ -60,9 +100,11 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
             )}
           </Link>
 
-          {/* Perfil */}
-          <Link to="/perfil">
-            <Button variant="ghost" size="icon">
+          {/* Perfil / Login */}
+          <Link to={isAuthenticated ? "/perfil" : "/login"}>
+            <Button variant="ghost" size="icon" className={cn(
+              isAdmin && 'text-red-500 hover:text-red-600'
+            )}>
               <User className="h-5 w-5" />
             </Button>
           </Link>
