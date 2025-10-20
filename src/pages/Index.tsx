@@ -7,10 +7,10 @@ import { ArrowRight, Shirt, ShoppingBag, Star, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const mockProducts = [
-  { name: "Camiseta Polo", priceDz: 120.00, unitPrice: 10.00, unit: 'DZ', imageUrl: "/placeholder.svg" },
-  { name: "Calça Jeans", priceDz: 450.00, unitPrice: 37.50, unit: 'CX', imageUrl: "/placeholder.svg" },
-  { name: "Vestido Casual", priceDz: 180.00, unitPrice: 15.00, unit: 'DZ', imageUrl: "/placeholder.svg" },
-  { name: "Tênis Esportivo", priceDz: 600.00, unitPrice: 50.00, unit: 'PC', imageUrl: "/placeholder.svg" },
+  { name: "Camiseta Polo", priceDz: 120.00, unitPrice: 10.00, unit: 'DZ' as const, imageUrl: "/placeholder.svg" },
+  { name: "Calça Jeans", priceDz: 450.00, unitPrice: 37.50, unit: 'CX' as const, imageUrl: "/placeholder.svg" },
+  { name: "Vestido Casual", priceDz: 180.00, unitPrice: 15.00, unit: 'DZ' as const, imageUrl: "/placeholder.svg" },
+  { name: "Tênis Esportivo", priceDz: 600.00, unitPrice: 50.00, unit: 'PC' as const, imageUrl: "/placeholder.svg" },
 ];
 
 const mockCategories = [
