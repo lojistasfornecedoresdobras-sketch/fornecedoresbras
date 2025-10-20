@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { MadeWithDyad } from '@/components/made-with-dyad';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 
 interface Produto {
   id: string;
@@ -23,14 +23,9 @@ const EstoqueFornecedor: React.FC = () => {
   const { b2bProfile, isLoading: isAuthLoading } = useAuth();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isAuthLoading && b2bProfile?.role === 'fornecedor') {
-      fetchProdutos();
-    }
-  }, [isAuthLoading, b2bProfile]);
-
-  const fetchProdutos = async () => {
+  const fetchProdutos = useCallback(async () => {
     if (!b2bProfile?.id) return;
 
     setIsLoading(true);
@@ -47,6 +42,35 @@ const EstoqueFornecedor: React.FC = () => {
       setProdutos(data as Produto[]);
     }
     setIsLoading(false);
+  }, [b2bProfile]);
+
+  useEffect(() => {
+    if (!isAuthLoading && b2bProfile?.role === 'fornecedor') {
+      fetchProdutos();
+    }
+  }, [isAuthLoading, b2bProfile, fetchProdutos]);
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o produto "${productName}"? Esta ação é irreversível.`)) {
+      return;
+    }
+
+    setIsDeleting(productId);
+    
+    const { error } = await supabase
+      .from('produtos')
+      .delete()
+      .eq('id', productId);
+
+    if (error) {
+      showError("Erro ao excluir produto: " + error.message);
+      console.error(error);
+    } else {
+      showSuccess(`Produto "${productName}" excluído com sucesso.`);
+      // Atualiza a lista localmente
+      setProdutos(prev => prev.filter(p => p.id !== productId));
+    }
+    setIsDeleting(null);
   };
 
   if (isAuthLoading) {
@@ -118,11 +142,21 @@ const EstoqueFornecedor: React.FC = () => {
                       <TableCell className="text-right">{produto.quantidade_estoque} un</TableCell>
                       <TableCell className="text-right font-bold text-atacado-accent">R${produto.preco_atacado.toFixed(2)}/{produto.unidade_medida}</TableCell>
                       <TableCell className="text-center space-x-2">
-                        <Button variant="ghost" size="icon" className="text-atacado-primary">
+                        <Button variant="ghost" size="icon" className="text-atacado-primary" onClick={() => navigate(`/editar-produto/${produto.id}`)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive">
-                          <Trash2 className="w-4 h-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteProduct(produto.id, produto.nome)}
+                          disabled={isDeleting === produto.id}
+                        >
+                          {isDeleting === produto.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </Button>
                       </TableCell>
                     </TableRow>
