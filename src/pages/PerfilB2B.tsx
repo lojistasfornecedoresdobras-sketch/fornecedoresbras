@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Star, Truck, Edit, ShoppingCart, Package } from 'lucide-react';
+import { Loader2, Star, Truck, Edit, ShoppingCart, Package, ShoppingBag } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
 import { Link } from 'react-router-dom';
 
@@ -67,7 +67,7 @@ const PerfilB2B: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isFornecedor ? (
             <>
-              {/* Card de Pedidos Recebidos */}
+              {/* Card de Pedidos Recebidos (Fornecedor) */}
               <Link to="/pedidos-fornecedor">
                 <Card className="bg-atacado-primary text-white hover:bg-atacado-primary/90 transition-colors cursor-pointer">
                   <CardHeader>
@@ -82,7 +82,7 @@ const PerfilB2B: React.FC = () => {
                 </Card>
               </Link>
               
-              {/* Card de Estoque */}
+              {/* Card de Estoque (Fornecedor) */}
               <Link to="/estoque">
                 <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
                   <CardHeader>
@@ -99,15 +99,22 @@ const PerfilB2B: React.FC = () => {
             </>
           ) : (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-atacado-primary text-lg">PEDIDOS CONCLUÍDOS ⭐</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-atacado-accent">245</p>
-                  <p className="text-sm text-gray-500">Total de pedidos no atacado</p>
-                </CardContent>
-              </Card>
+              {/* Card de Meus Pedidos (Lojista) */}
+              <Link to="/meus-pedidos">
+                <Card className="bg-atacado-primary text-white hover:bg-atacado-primary/90 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <CardTitle className="text-white text-lg flex items-center justify-between">
+                      MEUS PEDIDOS <ShoppingBag className="w-5 h-5" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">245</p>
+                    <p className="text-sm text-gray-300">Acompanhe seus pedidos</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              {/* Card de Economia Atacado (Lojista) */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-atacado-primary text-lg">ECONOMIA ATACADO 💰</CardTitle>
