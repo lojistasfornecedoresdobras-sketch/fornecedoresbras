@@ -13,7 +13,9 @@ interface FormularioPerfilB2BProps {
   onProfileUpdated: (newProfile: B2BUser) => void;
 }
 
-const roles: UserRole[] = ['lojista', 'fornecedor'];
+// Apenas lojista e fornecedor podem ser selecionados pelo usuário.
+// 'administrador' é definido apenas via banco de dados.
+const selectableRoles: UserRole[] = ['lojista', 'fornecedor'];
 
 const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfile, onProfileUpdated }) => {
   const [formData, setFormData] = useState({
@@ -50,13 +52,16 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     e.preventDefault();
     setIsSaving(true);
 
+    // Garante que a role 'administrador' não seja sobrescrita se já estiver definida
+    const roleToUpdate = initialProfile.role === 'administrador' ? 'administrador' : formData.role;
+
     const updateData = {
       nome_fantasia: formData.nome_fantasia,
       razao_social: formData.razao_social,
       cnpj: formData.cnpj,
       telefone: formData.telefone,
       endereco: formData.endereco,
-      role: formData.role,
+      role: roleToUpdate,
     };
 
     const { data, error } = await supabase
@@ -75,6 +80,9 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     }
     setIsSaving(false);
   };
+
+  // Se o usuário for administrador, ele não pode mudar sua própria role aqui.
+  const isRoleFieldDisabled = initialProfile.role === 'administrador';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -100,14 +108,23 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
         </div>
         <div className="space-y-2">
           <Label htmlFor="role">Tipo de Usuário</Label>
-          <Select required value={formData.role} onValueChange={(v) => handleSelectChange('role', v)}>
+          <Select 
+            required 
+            value={formData.role} 
+            onValueChange={(v) => handleSelectChange('role', v)}
+            disabled={isRoleFieldDisabled} // Desabilita se for admin
+          >
             <SelectTrigger id="role">
               <SelectValue placeholder="Selecione a função" />
             </SelectTrigger>
             <SelectContent>
-              {roles.map(r => <SelectItem key={r} value={r}>{r === 'lojista' ? 'Lojista (Comprador)' : 'Fornecedor (Vendedor)'}</SelectItem>)}
+              {selectableRoles.map(r => <SelectItem key={r} value={r}>{r === 'lojista' ? 'Lojista (Comprador)' : 'Fornecedor (Vendedor)'}</SelectItem>)}
+              {isRoleFieldDisabled && <SelectItem key="administrador" value="administrador">Administrador</SelectItem>}
             </SelectContent>
           </Select>
+          {isRoleFieldDisabled && (
+            <p className="text-xs text-red-500">A role de Administrador não pode ser alterada aqui.</p>
+          )}
         </div>
       </div>
 

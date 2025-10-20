@@ -14,7 +14,8 @@ import Carrinho from "./pages/Carrinho";
 import Checkout from "./pages/Checkout";
 import PedidosFornecedor from "./pages/PedidosFornecedor";
 import PedidosLojista from "./pages/PedidosLojista";
-import EditarProduto from "./pages/EditarProduto"; // Importando o novo componente
+import EditarProduto from "./pages/EditarProduto";
+import DashboardAdmin from "./pages/DashboardAdmin"; // Importando o novo componente
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -47,8 +48,14 @@ const App = () => (
               <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
                 <Route path="/estoque" element={<EstoqueFornecedor />} />
                 <Route path="/cadastro-produto" element={<CadastroProduto />} />
-                <Route path="/editar-produto/:id" element={<EditarProduto />} /> {/* Nova Rota de Edição */}
+                <Route path="/editar-produto/:id" element={<EditarProduto />} />
                 <Route path="/pedidos-fornecedor" element={<PedidosFornecedor />} />
+              </Route>
+
+              {/* Rotas Protegidas (Acesso Apenas Administrador) */}
+              <Route element={<ProtectedRoute allowedRoles={['administrador']} />}>
+                <Route path="/admin" element={<DashboardAdmin />} />
+                {/* Rotas futuras do admin: /admin/produtos, /admin/usuarios, etc. */}
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
