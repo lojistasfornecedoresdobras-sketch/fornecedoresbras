@@ -38,15 +38,15 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
             <Routes>
-              {/* Rotas Públicas */}
+              {/* Rotas Públicas (Acessíveis mesmo se não autenticado) */}
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Index />} />
               <Route path="/ajuda" element={<Ajuda />} />
               <Route path="/como-funciona" element={<ComoFunciona />} />
               <Route path="/requisitos" element={<Requisitos />} />
               
               {/* Rotas Protegidas (Acesso Geral B2B) */}
               <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Index />} /> {/* Movido para dentro do ProtectedRoute */}
                 <Route path="/perfil" element={<PerfilB2B />} />
                 <Route path="/carrinho" element={<Carrinho />} />
                 <Route path="/checkout" element={<Checkout />} />
