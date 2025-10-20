@@ -20,7 +20,7 @@ interface TaxaComissao {
   taxa: number;
   ativo: boolean;
   data_definicao: string;
-  definido_por: string;
+  definido_por: string | null; // Adicionado | null para segurança
 }
 
 const ConfiguracoesAdmin: React.FC = () => {
@@ -32,7 +32,7 @@ const ConfiguracoesAdmin: React.FC = () => {
 
   // Coletar IDs dos usuários que definiram as taxas
   const definidorIds = useMemo(() => taxas.map(t => t.definido_por).filter(id => id), [taxas]);
-  const { userNames: definidorNames, isLoading: isNamesLoading } = useB2BUserNames(definidorIds);
+  const { userNames: definidorNames, isLoading: isNamesLoading } = useB2BUserNames(definidorIds as string[]);
 
   const fetchTaxas = React.useCallback(async () => {
     setIsLoading(true);
@@ -218,7 +218,11 @@ const ConfiguracoesAdmin: React.FC = () => {
                             {taxa.ativo ? 'Ativa' : 'Inativa'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{definidorNames[taxa.definido_por] || `ID: ${taxa.definido_por.substring(0, 8)}`}</TableCell>
+                        <TableCell>
+                          {taxa.definido_por 
+                            ? definidorNames[taxa.definido_por] || `ID: ${taxa.definido_por.substring(0, 8)}`
+                            : 'Sistema/N/A'}
+                        </TableCell>
                         <TableCell>{new Date(taxa.data_definicao).toLocaleDateString('pt-BR')}</TableCell>
                       </TableRow>
                     ))}
