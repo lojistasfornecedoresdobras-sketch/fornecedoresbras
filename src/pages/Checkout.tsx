@@ -28,6 +28,7 @@ interface GroupedOrder {
   fornecedorNome: string;
   items: CartItemWithFornecedor[];
   subtotal: number;
+  pedidoId?: string; // Adicionado para armazenar o ID do pedido criado
 }
 
 const Checkout: React.FC = () => {
@@ -35,6 +36,7 @@ const Checkout: React.FC = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { b2bProfile, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [groupedOrdersState, setGroupedOrdersState] = useState<GroupedOrder[]>([]);
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
@@ -49,9 +51,12 @@ const Checkout: React.FC = () => {
   // 2. Buscar nomes fantasia dos fornecedores
   const { userNames: fornecedoresMap, isLoading: isFetchingFornecedores } = useB2BUserNames(uniqueFornecedorIds);
 
-  // 3. Agrupar itens por Fornecedor
-  const groupedOrders: GroupedOrder[] = useMemo(() => {
-    if (items.length === 0 || isFetchingFornecedores) return [];
+  // 3. Agrupar itens por Fornecedor (Calculado no useMemo e armazenado no estado)
+  useEffect(() => {
+    if (items.length === 0 || isFetchingFornecedores) {
+      setGroupedOrdersState([]);
+      return;
+    }
 
     const groups = items.reduce((acc, item) => {
       const id = item.fornecedorId;
@@ -70,23 +75,26 @@ const Checkout: React.FC = () => {
       return acc;
     }, {} as Record<string, GroupedOrder>);
 
-    return Object.values(groups);
+    setGroupedOrdersState(Object.values(groups));
   }, [items, fornecedoresMap, isFetchingFornecedores]);
 
 
   const handleFinalizeOrder = async () => {
-    if (!b2bProfile || !user || groupedOrders.length === 0) {
+    if (!b2bProfile || !user || groupedOrdersState.length === 0) {
       showError("Erro: Dados do usuário ou carrinho inválidos.");
       return;
     }
 
     setIsProcessing(true);
+    let successfulOrders = 0;
+    const createdOrderIds: string[] = [];
 
     try {
-      let successfulOrders = 0;
+      // 1. Criar todos os pedidos e itens primeiro (Status: Aguardando Pagamento)
+      const ordersToProcess: GroupedOrder[] = [];
 
-      for (const group of groupedOrders) {
-        // 2. Criar o Pedido Principal para cada fornecedor
+      for (const group of groupedOrdersState) {
+        // 1a. Criar o Pedido Principal para cada fornecedor
         const orderData = {
           lojista_id: user.id,
           fornecedor_id: group.fornecedorId,
@@ -105,8 +113,9 @@ const Checkout: React.FC = () => {
         }
 
         const pedidoId = order.id;
+        createdOrderIds.push(pedidoId);
 
-        // 3. Criar os Itens do Pedido
+        // 1b. Criar os Itens do Pedido
         const orderItemsData = group.items.map(item => ({
           pedido_id: pedidoId,
           produto_id: item.id,
@@ -122,12 +131,34 @@ const Checkout: React.FC = () => {
         if (itemsError) {
           throw new Error(itemsError.message || `Falha ao inserir itens do pedido #${pedidoId.substring(0, 8)}.`);
         }
-        successfulOrders++;
+        
+        ordersToProcess.push({ ...group, pedidoId });
       }
 
-      showSuccess(`Sucesso! ${successfulOrders} pedido(s) criado(s). Aguardando pagamento.`);
-      clearCart();
-      navigate('/meus-pedidos'); // Redireciona para a página de pedidos do lojista
+      // 2. Processar Pagamento para cada pedido via Edge Function
+      for (const order of ordersToProcess) {
+        if (!order.pedidoId) continue;
+
+        const { data: paymentData, error: paymentError } = await supabase.functions.invoke('processar-pagamento', {
+          body: { pedidoId: order.pedidoId },
+        });
+
+        if (paymentError) {
+          // Se o pagamento falhar, o pedido permanece em 'Aguardando Pagamento'
+          console.error(`Falha no pagamento do pedido ${order.pedidoId.substring(0, 8)}:`, paymentError);
+          showError(`Falha ao processar pagamento para ${order.fornecedorNome}. O pedido foi criado, mas o pagamento falhou.`);
+        } else {
+          successfulOrders++;
+        }
+      }
+
+      if (successfulOrders > 0) {
+        showSuccess(`Sucesso! ${successfulOrders} pedido(s) processado(s) e pago(s).`);
+        clearCart();
+        navigate('/meus-pedidos'); // Redireciona para a página de pedidos do lojista
+      } else {
+        showError("Nenhum pagamento foi processado com sucesso. Verifique o status dos pedidos.");
+      }
       
     } catch (error: any) {
       console.error("Erro no Checkout:", error);
@@ -171,10 +202,10 @@ const Checkout: React.FC = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate('/carrinho')}>
             <ArrowLeft className="w-6 h-6 text-atacado-primary" />
           </Button>
-          <h1 className="text-3xl font-bold text-atacado-primary">FINALIZAR PEDIDO ({groupedOrders.length} Fornecedor{groupedOrders.length > 1 ? 'es' : ''})</h1>
+          <h1 className="text-3xl font-bold text-atacado-primary">FINALIZAR PEDIDO ({groupedOrdersState.length} Fornecedor{groupedOrdersState.length > 1 ? 'es' : ''})</h1>
         </div>
 
-        {groupedOrders.map((group, index) => (
+        {groupedOrdersState.map((group, index) => (
           <Card key={group.fornecedorId} className="shadow-lg">
             <CardHeader className="bg-gray-50 border-b">
               <CardTitle className="text-xl text-atacado-primary flex items-center">
@@ -236,7 +267,7 @@ const Checkout: React.FC = () => {
             onClick={handleFinalizeOrder}
             disabled={isProcessing}
           >
-            {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : `CONFIRMAR ${groupedOrders.length} PEDIDO(S) E PAGAR`}
+            {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : `CONFIRMAR ${groupedOrdersState.length} PEDIDO(S) E PAGAR`}
           </Button>
         </Card>
       </main>
