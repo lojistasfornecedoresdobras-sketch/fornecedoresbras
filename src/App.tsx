@@ -19,7 +19,7 @@ import DashboardAdmin from "./pages/DashboardAdmin";
 import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin";
 import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin";
 import ConfiguracoesAdmin from "./pages/ConfiguracoesAdmin";
-import GerenciarPedidosAdmin from "./pages/GerenciarPedidosAdmin"; // Novo
+import GerenciarPedidosAdmin from "./pages/GerenciarPedidosAdmin";
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -41,11 +41,15 @@ const App = () => (
               
               {/* Rotas Protegidas (Acesso Geral B2B) */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/catalogo" element={<CatalogoAtacado />} />
                 <Route path="/perfil" element={<PerfilB2B />} />
                 <Route path="/carrinho" element={<Carrinho />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/meus-pedidos" element={<PedidosLojista />} />
+              </Route>
+
+              {/* Rotas Protegidas (Acesso Lojista E Fornecedor) */}
+              <Route element={<ProtectedRoute allowedRoles={['lojista', 'fornecedor']} />}>
+                <Route path="/catalogo" element={<CatalogoAtacado />} />
               </Route>
 
               {/* Rotas Protegidas (Acesso Fornecedor E Administrador) */}
@@ -59,7 +63,7 @@ const App = () => (
               {/* Rotas Protegidas (Acesso Apenas Administrador) */}
               <Route element={<ProtectedRoute allowedRoles={['administrador']} />}>
                 <Route path="/admin" element={<DashboardAdmin />} />
-                <Route path="/admin/pedidos" element={<GerenciarPedidosAdmin />} /> {/* Novo */}
+                <Route path="/admin/pedidos" element={<GerenciarPedidosAdmin />} />
                 <Route path="/admin/usuarios" element={<GerenciarUsuariosAdmin />} />
                 <Route path="/admin/produtos" element={<GerenciarProdutosAdmin />} />
                 <Route path="/admin/config" element={<ConfiguracoesAdmin />} />
