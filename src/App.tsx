@@ -7,6 +7,9 @@ import Index from "./pages/Index";
 import CatalogoAtacado from "./pages/CatalogoAtacado";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import PerfilB2B from "./pages/PerfilB2B";
+import EstoqueFornecedor from "./pages/EstoqueFornecedor";
+import CadastroProduto from "./pages/CadastroProduto";
 import { AuthProvider } from "./hooks/use-auth";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -24,9 +27,16 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Index />} />
             
-            {/* Rotas Protegidas (Exemplo: Catálogo só para autenticados) */}
+            {/* Rotas Protegidas (Acesso Geral B2B) */}
             <Route element={<ProtectedRoute />}>
               <Route path="/catalogo" element={<CatalogoAtacado />} />
+              <Route path="/perfil" element={<PerfilB2B />} />
+            </Route>
+
+            {/* Rotas Protegidas (Acesso Apenas Fornecedor) */}
+            <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
+              <Route path="/estoque" element={<EstoqueFornecedor />} />
+              <Route path="/cadastro-produto" element={<CadastroProduto />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
