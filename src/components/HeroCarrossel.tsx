@@ -42,7 +42,7 @@ const HeroCarrossel: React.FC = () => {
       <div className="text-center mt-4">
         <Button 
           className="bg-atacado-accent hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-colors"
-          onClick={() => console.log("Ver Catálogo Completo")}
+          // Removido onClick, pois o componente é envolvido por um Link em Index.tsx
         >
           VER CATÁLOGO COMPLETO
         </Button>

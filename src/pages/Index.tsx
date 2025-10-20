@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import React, { useEffect, useState } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
+import { Link } from 'react-router-dom'; // Importando Link
 
 interface Produto {
   id: string;
@@ -16,6 +17,7 @@ interface Produto {
   unidade_medida: 'DZ' | 'PC' | 'CX';
   foto_url: string;
   fornecedor_id: string; // Adicionado
+  categoria: string; // Adicionado para filtro
 }
 
 const mockCategories = [
@@ -55,7 +57,7 @@ const Index = () => {
     // Busca os 4 produtos mais recentes (mockando "mais vendidos" por enquanto)
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id') // Incluindo fornecedor_id
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria') // Incluindo categoria
       .order('created_at', { ascending: false })
       .limit(4);
 
@@ -75,7 +77,9 @@ const Index = () => {
       <main className="container mx-auto p-4 space-y-8">
         
         {/* HERO CARROSSEL ATACADO */}
-        <HeroCarrossel />
+        <Link to="/catalogo">
+          <HeroCarrossel />
+        </Link>
 
         {/* MAIS VENDIDOS ATACADO */}
         <section>
@@ -113,13 +117,14 @@ const Index = () => {
           <h2 className="text-2xl font-bold mb-4 text-atacado-primary">CATEGORIAS ATACADO</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {mockCategories.map((category, index) => (
-              <div 
+              <Link 
                 key={index} 
+                to={`/catalogo?categoria=${category.name}`} // Link para o catálogo com filtro
                 className="flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
               >
                 <category.icon className="w-8 h-8 text-atacado-accent mb-2" />
                 <span className="font-medium text-sm text-atacado-primary">{category.name}</span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
