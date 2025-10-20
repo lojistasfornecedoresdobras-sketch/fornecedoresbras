@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import PedidoDetalhesFornecedorModal from '@/components/PedidoDetalhesFornecedorModal';
 import { PedidoStatus } from '@/types/pedido';
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
 
 interface Pedido {
   id: string;
@@ -26,6 +27,9 @@ const PedidosFornecedor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPedidoId, setSelectedPedidoId] = useState<string | null>(null);
+
+  const lojistaIds = useMemo(() => pedidos.map(p => p.lojista_id), [pedidos]);
+  const { userNames: lojistaNames, isLoading: isNamesLoading } = useB2BUserNames(lojistaIds);
 
   const fetchPedidos = useCallback(async () => {
     if (!b2bProfile?.id) return;
@@ -116,6 +120,8 @@ const PedidosFornecedor: React.FC = () => {
     return <Navigate to="/perfil" replace />;
   }
 
+  const displayLoading = isLoading || isNamesLoading;
+
   return (
     <div className="min-h-screen bg-atacado-background">
       <HeaderAtacado />
@@ -128,7 +134,7 @@ const PedidosFornecedor: React.FC = () => {
         {/* Tabela de Pedidos */}
         <Card className="shadow-lg">
           <CardContent className="p-0">
-            {isLoading ? (
+            {displayLoading ? (
               <div className="flex justify-center items-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-atacado-primary" />
               </div>
@@ -141,7 +147,7 @@ const PedidosFornecedor: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Pedido #</TableHead>
-                    <TableHead>Lojista ID</TableHead>
+                    <TableHead>Lojista</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Data</TableHead>
@@ -152,7 +158,7 @@ const PedidosFornecedor: React.FC = () => {
                   {pedidos.map((pedido) => (
                     <TableRow key={pedido.id}>
                       <TableCell className="font-medium">{pedido.id.substring(0, 8)}</TableCell>
-                      <TableCell>{pedido.lojista_id.substring(0, 8)}...</TableCell>
+                      <TableCell className="font-medium text-atacado-primary">{lojistaNames[pedido.lojista_id] || `${pedido.lojista_id.substring(0, 8)}...`}</TableCell>
                       <TableCell className="text-right font-bold text-atacado-accent">{formatCurrency(pedido.total_atacado)}</TableCell>
                       <TableCell className="text-center">{getStatusBadge(pedido.status)}</TableCell>
                       <TableCell className="text-center text-sm">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</TableCell>

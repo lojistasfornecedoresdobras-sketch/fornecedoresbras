@@ -15,6 +15,7 @@ export interface PedidoDetalhes {
   total_atacado: number;
   status: PedidoStatus;
   lojista_id: string;
+  fornecedor_id: string;
   itens_pedido: ItemPedido[];
   // Adicionar lojista_nome/email em um cenário real
 }

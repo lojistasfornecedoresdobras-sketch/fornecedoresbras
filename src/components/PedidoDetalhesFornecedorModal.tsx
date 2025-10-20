@@ -9,6 +9,7 @@ import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useProductNames } from '@/hooks/use-product-names';
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names'; // Importando o novo hook
 
 interface PedidoDetalhesFornecedorModalProps {
   pedidoId: string | null;
@@ -69,9 +70,13 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
     setIsLoading(false);
   };
 
-  // Extrai IDs dos produtos para buscar os nomes
+  // Hooks para buscar nomes
   const productIds = pedido?.itens_pedido.map(item => item.produto_id) || [];
   const { productNames, isLoading: isProductNamesLoading } = useProductNames(productIds);
+  
+  const lojistaId = pedido?.lojista_id ? [pedido.lojista_id] : [];
+  const { userNames: lojistaNames, isLoading: isLojistaNameLoading } = useB2BUserNames(lojistaId);
+  const lojistaNome = lojistaNames[lojistaId[0]] || (lojistaId[0] ? `Lojista ID: ${lojistaId[0].substring(0, 8)}` : 'N/A');
 
 
   const handleUpdateStatus = async () => {
@@ -110,7 +115,7 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
     }
   };
 
-  const isContentLoading = isLoading || isProductNamesLoading;
+  const isContentLoading = isLoading || isProductNamesLoading || isLojistaNameLoading;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -136,7 +141,7 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
               <CardContent className="p-4 text-sm space-y-1">
                 <p><strong>Pedido ID:</strong> {pedido.id.substring(0, 8)}</p>
                 <p><strong>Data:</strong> {new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
-                <p><strong>Lojista ID:</strong> {pedido.lojista_id.substring(0, 8)}...</p>
+                <p><strong>Lojista:</strong> <span className="font-semibold">{lojistaNome}</span></p>
                 <div className="flex items-center">
                   <strong>Status Atual:</strong> 
                   <span className="ml-2 flex items-center font-semibold text-atacado-primary">

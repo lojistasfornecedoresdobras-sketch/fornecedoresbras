@@ -8,6 +8,7 @@ import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useProductNames } from '@/hooks/use-product-names';
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names'; // Importando o novo hook
 
 interface PedidoDetalhesLojistaModalProps {
   pedidoId: string | null;
@@ -18,30 +19,14 @@ interface PedidoDetalhesLojistaModalProps {
 const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({ pedidoId, isOpen, onClose }) => {
   const [pedido, setPedido] = useState<PedidoDetalhes | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [fornecedorNome, setFornecedorNome] = useState<string>('Carregando...');
 
   useEffect(() => {
     if (isOpen && pedidoId) {
       fetchPedidoDetalhes(pedidoId);
     } else {
       setPedido(null);
-      setFornecedorNome('Carregando...');
     }
   }, [isOpen, pedidoId]);
-
-  const fetchFornecedorName = async (fornecedorId: string) => {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('nome_fantasia')
-      .eq('id', fornecedorId)
-      .single();
-    
-    if (error) {
-      console.error("Erro ao buscar nome do fornecedor:", error);
-      return `Fornecedor ID: ${fornecedorId.substring(0, 8)}`;
-    }
-    return data.nome_fantasia || `Fornecedor ID: ${fornecedorId.substring(0, 8)}`;
-  };
 
   const fetchPedidoDetalhes = async (id: string) => {
     setIsLoading(true);
@@ -67,16 +52,18 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
       setPedido(null);
     } else {
       setPedido(data as PedidoDetalhes);
-      // Busca o nome do fornecedor
-      const nome = await fetchFornecedorName(data.fornecedor_id);
-      setFornecedorNome(nome);
     }
     setIsLoading(false);
   };
 
-  // Extrai IDs dos produtos para buscar os nomes
+  // Hooks para buscar nomes
   const productIds = pedido?.itens_pedido.map(item => item.produto_id) || [];
   const { productNames, isLoading: isProductNamesLoading } = useProductNames(productIds);
+  
+  const fornecedorId = pedido?.fornecedor_id ? [pedido.fornecedor_id] : [];
+  const { userNames: fornecedorNames, isLoading: isFornecedorNameLoading } = useB2BUserNames(fornecedorId);
+  const fornecedorNome = fornecedorNames[fornecedorId[0]] || (fornecedorId[0] ? `Fornecedor ID: ${fornecedorId[0].substring(0, 8)}` : 'N/A');
+
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
@@ -116,7 +103,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
     );
   };
 
-  const isContentLoading = isLoading || isProductNamesLoading;
+  const isContentLoading = isLoading || isProductNamesLoading || isFornecedorNameLoading;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -142,7 +129,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
               <CardContent className="p-4 text-sm space-y-1">
                 <p><strong>Pedido ID:</strong> {pedido.id.substring(0, 8)}</p>
                 <p><strong>Data:</strong> {new Date(pedido.created_at).toLocaleDateString('pt-BR')}</p>
-                <p><strong>Fornecedor:</strong> {fornecedorNome}</p>
+                <p><strong>Fornecedor:</strong> <span className="font-semibold">{fornecedorNome}</span></p>
                 <div className="flex items-center">
                   <strong>Status Atual:</strong> 
                   <span className="ml-2">

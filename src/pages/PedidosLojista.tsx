@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +9,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
-import PedidoDetalhesLojistaModal from '@/components/PedidoDetalhesLojistaModal'; // Importando o novo modal
+import PedidoDetalhesLojistaModal from '@/components/PedidoDetalhesLojistaModal';
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names'; // Importando o novo hook
 
 interface Pedido {
   id: string;
@@ -17,7 +18,6 @@ interface Pedido {
   total_atacado: number;
   status: string;
   fornecedor_id: string;
-  // Em um cenário real, buscaríamos o nome fantasia do fornecedor
 }
 
 const PedidosLojista: React.FC = () => {
@@ -26,6 +26,9 @@ const PedidosLojista: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPedidoId, setSelectedPedidoId] = useState<string | null>(null);
+
+  const fornecedorIds = useMemo(() => pedidos.map(p => p.fornecedor_id), [pedidos]);
+  const { userNames: fornecedorNames, isLoading: isNamesLoading } = useB2BUserNames(fornecedorIds);
 
   useEffect(() => {
     if (!isAuthLoading && user) {
@@ -116,8 +119,7 @@ const PedidosLojista: React.FC = () => {
     return <Navigate to="/pedidos-fornecedor" replace />;
   }
   
-  // Se o usuário não for lojista (ou seja, não tem role definida ou é admin), ele ainda pode ver o histórico
-  // Mas se não estiver autenticado, o ProtectedRoute já cuida disso.
+  const displayLoading = isLoading || isNamesLoading;
 
   return (
     <div className="min-h-screen bg-atacado-background">
@@ -133,7 +135,7 @@ const PedidosLojista: React.FC = () => {
         {/* Tabela de Pedidos */}
         <Card className="shadow-lg">
           <CardContent className="p-0">
-            {isLoading ? (
+            {displayLoading ? (
               <div className="flex justify-center items-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-atacado-primary" />
               </div>
@@ -146,7 +148,7 @@ const PedidosLojista: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Pedido #</TableHead>
-                    <TableHead>Fornecedor ID</TableHead>
+                    <TableHead>Fornecedor</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Data</TableHead>
@@ -157,7 +159,7 @@ const PedidosLojista: React.FC = () => {
                   {pedidos.map((pedido) => (
                     <TableRow key={pedido.id}>
                       <TableCell className="font-medium">{pedido.id.substring(0, 8)}</TableCell>
-                      <TableCell>{pedido.fornecedor_id.substring(0, 8)}...</TableCell>
+                      <TableCell className="font-medium text-atacado-primary">{fornecedorNames[pedido.fornecedor_id] || `${pedido.fornecedor_id.substring(0, 8)}...`}</TableCell>
                       <TableCell className="text-right font-bold text-atacado-accent">{formatCurrency(pedido.total_atacado)}</TableCell>
                       <TableCell className="text-center">{getStatusBadge(pedido.status)}</TableCell>
                       <TableCell className="text-center text-sm">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</TableCell>
