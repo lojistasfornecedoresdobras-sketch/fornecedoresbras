@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import PerfilB2B from "./pages/PerfilB2B";
 import EstoqueFornecedor from "./pages/EstoqueFornecedor";
 import CadastroProduto from "./pages/CadastroProduto";
+import Carrinho from "./pages/Carrinho"; // Importando Carrinho
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -23,7 +24,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <CartProvider> {/* Adicionando CartProvider aqui */}
+          <CartProvider>
             <Routes>
               {/* Rotas Públicas */}
               <Route path="/login" element={<Login />} />
@@ -33,7 +34,7 @@ const App = () => (
               <Route element={<ProtectedRoute />}>
                 <Route path="/catalogo" element={<CatalogoAtacado />} />
                 <Route path="/perfil" element={<PerfilB2B />} />
-                <Route path="/carrinho" element={<div>Página do Carrinho (A ser implementada)</div>} />
+                <Route path="/carrinho" element={<Carrinho />} /> {/* Usando o componente Carrinho */}
                 <Route path="/checkout" element={<div>Página de Checkout (A ser implementada)</div>} />
               </Route>
 
