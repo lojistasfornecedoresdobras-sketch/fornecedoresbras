@@ -1,20 +1,66 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, Trash2, Plus, Truck } from 'lucide-react';
+import { Edit, Trash2, Plus, Truck, Loader2 } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/use-auth';
+import { supabase } from '@/integrations/supabase/client';
+import { showError } from '@/utils/toast';
 
-const mockEstoque = [
-  { nome: "Camiseta Polo", estoque: 150, preco: 120.00, unidade: 'DZ' },
-  { nome: "Calça Jeans Slim", estoque: 50, preco: 450.00, unidade: 'CX' },
-  { nome: "Vestido Casual", estoque: 80, preco: 180.00, unidade: 'DZ' },
-];
+interface Produto {
+  id: string;
+  nome: string;
+  quantidade_estoque: number;
+  preco_atacado: number;
+  unidade_medida: 'DZ' | 'PC' | 'CX';
+}
 
 const EstoqueFornecedor: React.FC = () => {
   const navigate = useNavigate();
+  const { b2bProfile, isLoading: isAuthLoading } = useAuth();
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isAuthLoading && b2bProfile?.role === 'fornecedor') {
+      fetchProdutos();
+    }
+  }, [isAuthLoading, b2bProfile]);
+
+  const fetchProdutos = async () => {
+    if (!b2bProfile?.id) return;
+
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('id, nome, quantidade_estoque, preco_atacado, unidade_medida')
+      .eq('fornecedor_id', b2bProfile.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      showError("Erro ao carregar estoque: " + error.message);
+      console.error(error);
+    } else {
+      setProdutos(data as Produto[]);
+    }
+    setIsLoading(false);
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-atacado-background">
+        <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
+      </div>
+    );
+  }
+
+  // Redirecionamento de segurança, embora a rota já esteja protegida pelo ProtectedRoute
+  if (b2bProfile?.role !== 'fornecedor') {
+    return <Navigate to="/perfil" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-atacado-background">
@@ -47,33 +93,43 @@ const EstoqueFornecedor: React.FC = () => {
         {/* Tabela de Produtos */}
         <Card className="shadow-lg">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="text-right">Estoque</TableHead>
-                  <TableHead className="text-right">Preço</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockEstoque.map((produto, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{produto.nome}</TableCell>
-                    <TableCell className="text-right">{produto.estoque} {produto.unidade}</TableCell>
-                    <TableCell className="text-right font-bold text-atacado-accent">R${produto.preco.toFixed(2)}/{produto.unidade}</TableCell>
-                    <TableCell className="text-center space-x-2">
-                      <Button variant="ghost" size="icon" className="text-atacado-primary">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin text-atacado-primary" />
+              </div>
+            ) : produtos.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                Nenhum produto cadastrado. Comece adicionando um novo produto!
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="text-right">Estoque (Un)</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {produtos.map((produto) => (
+                    <TableRow key={produto.id}>
+                      <TableCell className="font-medium">{produto.nome}</TableCell>
+                      <TableCell className="text-right">{produto.quantidade_estoque} un</TableCell>
+                      <TableCell className="text-right font-bold text-atacado-accent">R${produto.preco_atacado.toFixed(2)}/{produto.unidade_medida}</TableCell>
+                      <TableCell className="text-center space-x-2">
+                        <Button variant="ghost" size="icon" className="text-atacado-primary">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </main>
