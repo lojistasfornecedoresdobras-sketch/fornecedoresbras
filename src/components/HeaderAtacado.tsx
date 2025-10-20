@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ShoppingCart, User, Package, ShoppingBag, HelpCircle } from 'lucide-react';
+import { Search, ShoppingCart, User, Package, ShoppingBag, HelpCircle, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/hooks/use-cart';
@@ -12,8 +12,9 @@ interface HeaderAtacadoProps {
   onSearchChange?: (term: string) => void;
 }
 
-const NavLink: React.FC<{ to: string, children: React.ReactNode }> = ({ to, children }) => (
+const NavLink: React.FC<{ to: string, children: React.ReactNode, icon: React.ElementType }> = ({ to, children, icon: Icon }) => (
   <Link to={to} className="text-sm font-medium text-gray-700 hover:text-atacado-primary transition-colors hidden lg:inline-flex items-center h-full px-3">
+    <Icon className="w-4 h-4 mr-1" />
     {children}
   </Link>
 );
@@ -43,28 +44,35 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
 
         {/* Navegação Principal (Desktop) */}
         <nav className="hidden lg:flex h-full items-center space-x-1 ml-6">
-          <NavLink to="/">Home</NavLink>
-          <NavLink to="/catalogo">Catálogo Atacado</NavLink>
-          <NavLink to="/ajuda">
-            <HelpCircle className="w-4 h-4 mr-1" /> Ajuda
-          </NavLink>
           
+          {/* Links Comuns */}
+          <NavLink to="/" icon={Truck}>Home</NavLink>
+          <NavLink to="/ajuda" icon={HelpCircle}>Ajuda</NavLink>
+          
+          {/* Links B2B */}
           {isAuthenticated && (
             <>
-              {isFornecedor && (
-                <NavLink to="/estoque">
-                  <Package className="w-4 h-4 mr-1" /> Meu Estoque
-                </NavLink>
+              {/* Links para Lojista e Fornecedor */}
+              {(isLojista || isFornecedor) && (
+                <NavLink to="/catalogo" icon={Package}>Catálogo Atacado</NavLink>
               )}
+
+              {/* Links Específicos do Lojista */}
               {isLojista && (
-                <NavLink to="/meus-pedidos">
-                  <ShoppingBag className="w-4 h-4 mr-1" /> Meus Pedidos
-                </NavLink>
+                <NavLink to="/meus-pedidos" icon={ShoppingBag}>Meus Pedidos</NavLink>
               )}
+
+              {/* Links Específicos do Fornecedor */}
+              {isFornecedor && (
+                <>
+                  <NavLink to="/estoque" icon={Package}>Meu Estoque</NavLink>
+                  <NavLink to="/pedidos-fornecedor" icon={ShoppingBag}>Pedidos Recebidos</NavLink>
+                </>
+              )}
+
+              {/* Link Específico do Administrador */}
               {isAdmin && (
-                <NavLink to="/admin">
-                  <User className="w-4 h-4 mr-1" /> Painel Admin
-                </NavLink>
+                <NavLink to="/admin" icon={User}>Painel Admin</NavLink>
               )}
             </>
           )}
@@ -88,20 +96,22 @@ const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
             <Search className="h-5 w-5" />
           </Button>
           
-          {/* Carrinho */}
-          <Link to="/carrinho" className="relative">
-            <Button variant="ghost" size="icon">
-              <ShoppingCart className="h-5 w-5" />
-            </Button>
-            {totalItems > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-atacado-accent"
-              >
-                {totalItems}
-              </Badge>
-            )}
-          </Link>
+          {/* Carrinho (Visível apenas para Lojistas ou não autenticados que podem estar navegando) */}
+          {(!isAuthenticated || isLojista || isFornecedor) && (
+            <Link to="/carrinho" className="relative">
+              <Button variant="ghost" size="icon">
+                <ShoppingCart className="h-5 w-5" />
+              </Button>
+              {totalItems > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-atacado-accent"
+                >
+                  {totalItems}
+                </Badge>
+              )}
+            </Link>
+          )}
 
           {/* Perfil / Login */}
           <Link to={isAuthenticated ? "/perfil" : "/login"}>
