@@ -11,7 +11,8 @@ import PerfilB2B from "./pages/PerfilB2B";
 import EstoqueFornecedor from "./pages/EstoqueFornecedor";
 import CadastroProduto from "./pages/CadastroProduto";
 import Carrinho from "./pages/Carrinho";
-import Checkout from "./pages/Checkout"; // Importando Checkout
+import Checkout from "./pages/Checkout";
+import PedidosFornecedor from "./pages/PedidosFornecedor"; // Importando PedidosFornecedor
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -36,13 +37,14 @@ const App = () => (
                 <Route path="/catalogo" element={<CatalogoAtacado />} />
                 <Route path="/perfil" element={<PerfilB2B />} />
                 <Route path="/carrinho" element={<Carrinho />} />
-                <Route path="/checkout" element={<Checkout />} /> {/* Usando o componente Checkout */}
+                <Route path="/checkout" element={<Checkout />} />
               </Route>
 
               {/* Rotas Protegidas (Acesso Apenas Fornecedor) */}
               <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
                 <Route path="/estoque" element={<EstoqueFornecedor />} />
                 <Route path="/cadastro-produto" element={<CadastroProduto />} />
+                <Route path="/pedidos-fornecedor" element={<PedidosFornecedor />} /> {/* Nova Rota */}
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

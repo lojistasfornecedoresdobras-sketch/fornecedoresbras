@@ -3,8 +3,9 @@ import { useAuth } from '@/hooks/use-auth';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Star, Truck, Edit } from 'lucide-react';
+import { Loader2, Star, Truck, Edit, ShoppingCart, Package } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
+import { Link } from 'react-router-dom';
 
 const PerfilB2B: React.FC = () => {
   const { b2bProfile, isLoading, signOut } = useAuth();
@@ -62,28 +63,39 @@ const PerfilB2B: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Métricas B2B */}
+        {/* Métricas B2B e Navegação */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isFornecedor ? (
             <>
-              <Card className="bg-atacado-primary text-white">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg">FATURAMENTO HOJE 🏆</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">R$12.500</p>
-                  <p className="text-sm text-gray-300">150 Lojistas Ativos</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-atacado-primary text-lg">MEU ESTOQUE</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-atacado-accent">1.200 DZ</p>
-                  <p className="text-sm text-gray-500">Produtos disponíveis</p>
-                </CardContent>
-              </Card>
+              {/* Card de Pedidos Recebidos */}
+              <Link to="/pedidos-fornecedor">
+                <Card className="bg-atacado-primary text-white hover:bg-atacado-primary/90 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <CardTitle className="text-white text-lg flex items-center justify-between">
+                      PEDIDOS RECEBIDOS <ShoppingCart className="w-5 h-5" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold">12 Novos</p>
+                    <p className="text-sm text-gray-300">Clique para gerenciar</p>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              {/* Card de Estoque */}
+              <Link to="/estoque">
+                <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <CardTitle className="text-atacado-primary text-lg flex items-center justify-between">
+                      MEU ESTOQUE <Package className="w-5 h-5 text-atacado-accent" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-atacado-accent">1.200 DZ</p>
+                    <p className="text-sm text-gray-500">Produtos disponíveis</p>
+                  </CardContent>
+                </Card>
+              </Link>
             </>
           ) : (
             <>
