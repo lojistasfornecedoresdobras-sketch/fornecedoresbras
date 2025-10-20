@@ -16,8 +16,16 @@ interface PedidoDetalhesLojistaModalProps {
   onClose: () => void;
 }
 
+// Tipagem para Frete (simplificada para o mock)
+interface Frete {
+  codigo_rastreio: string | null;
+  transportadora: string | null;
+  status: string | null;
+}
+
 const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({ pedidoId, isOpen, onClose }) => {
   const [pedido, setPedido] = useState<PedidoDetalhes | null>(null);
+  const [frete, setFrete] = useState<Frete | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -25,8 +33,27 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
       fetchPedidoDetalhes(pedidoId);
     } else {
       setPedido(null);
+      setFrete(null);
     }
   }, [isOpen, pedidoId]);
+
+  const fetchFrete = async (pedidoId: string) => {
+    const { data, error } = await supabase
+      .from('fretes')
+      .select('codigo_rastreio, transportadora, status')
+      .eq('pedido_id', pedidoId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+      console.error("Erro ao buscar frete:", error);
+    }
+    
+    if (data) {
+      setFrete(data as Frete);
+    } else {
+      setFrete(null);
+    }
+  };
 
   const fetchPedidoDetalhes = async (id: string) => {
     setIsLoading(true);
@@ -52,6 +79,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
       setPedido(null);
     } else {
       setPedido(data as PedidoDetalhes);
+      await fetchFrete(id);
     }
     setIsLoading(false);
   };
@@ -139,20 +167,22 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
               </CardContent>
             </Card>
 
-            {/* Rastreamento (Mock) */}
+            {/* Rastreamento */}
             <Card className="border-atacado-accent/50">
               <CardContent className="p-4 space-y-2">
                 <h3 className="font-semibold text-atacado-accent flex items-center">
                   <MapPin className="w-4 h-4 mr-2" /> Rastreamento & Entrega
                 </h3>
-                {pedido.status === 'Enviado' ? (
-                  <p className="text-sm text-gray-700">
-                    Seu pedido foi enviado! Código de Rastreio: <span className="font-mono bg-gray-100 p-1 rounded">BR123456789BR</span>
-                  </p>
-                ) : pedido.status === 'Concluído' ? (
-                  <p className="text-sm text-green-600">Entrega concluída com sucesso!</p>
+                {frete?.codigo_rastreio ? (
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Transportadora:</strong> {frete.transportadora}</p>
+                    <p><strong>Rastreio:</strong> <span className="font-mono bg-gray-100 p-1 rounded">{frete.codigo_rastreio}</span></p>
+                    <p className="text-green-600">Status do Frete: {frete.status || 'Em Trânsito'}</p>
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Rastreamento disponível após o envio.</p>
+                  <p className="text-sm text-gray-500">
+                    {pedido.status === 'Aguardando Pagamento' ? 'Aguardando confirmação de pagamento.' : 'Aguardando registro de envio pelo fornecedor.'}
+                  </p>
                 )}
               </CardContent>
             </Card>

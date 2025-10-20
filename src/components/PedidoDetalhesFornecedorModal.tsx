@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Package, Truck, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
+import { Loader2, Package, Truck, CheckCircle, XCircle, ArrowRight, MapPin } from 'lucide-react';
 import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useProductNames } from '@/hooks/use-product-names';
-import { useB2BUserNames } from '@/hooks/use-b2b-user-names'; // Importando o novo hook
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface PedidoDetalhesFornecedorModalProps {
   pedidoId: string | null;
@@ -26,24 +28,58 @@ const statusOptions: PedidoStatus[] = [
   'Cancelado',
 ];
 
+// Tipagem para Frete (simplificada para o mock)
+interface Frete {
+  codigo_rastreio: string | null;
+  transportadora: string | null;
+  status: string | null;
+}
+
 const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps> = ({ pedidoId, isOpen, onClose, onUpdate }) => {
   const [pedido, setPedido] = useState<PedidoDetalhes | null>(null);
+  const [frete, setFrete] = useState<Frete | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSavingFrete, setIsSavingFrete] = useState(false);
   const [newStatus, setNewStatus] = useState<PedidoStatus | string>('');
+  const [rastreioInput, setRastreioInput] = useState('');
+  const [transportadoraInput, setTransportadoraInput] = useState('');
 
   useEffect(() => {
     if (isOpen && pedidoId) {
       fetchPedidoDetalhes(pedidoId);
     } else {
       setPedido(null);
+      setFrete(null);
       setNewStatus('');
+      setRastreioInput('');
+      setTransportadoraInput('');
     }
   }, [isOpen, pedidoId]);
 
+  const fetchFrete = async (pedidoId: string) => {
+    const { data, error } = await supabase
+      .from('fretes')
+      .select('codigo_rastreio, transportadora, status')
+      .eq('pedido_id', pedidoId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+      console.error("Erro ao buscar frete:", error);
+    }
+    
+    if (data) {
+      setFrete(data as Frete);
+      setRastreioInput(data.codigo_rastreio || '');
+      setTransportadoraInput(data.transportadora || '');
+    } else {
+      setFrete(null);
+    }
+  };
+
   const fetchPedidoDetalhes = async (id: string) => {
     setIsLoading(true);
-    // Busca o pedido e os itens relacionados (join)
+    
     const { data, error } = await supabase
       .from('pedidos')
       .select(`
@@ -59,13 +95,14 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       .eq('id', id)
       .single();
 
-    if (error) {
-      showError("Erro ao carregar detalhes do pedido: " + error.message);
+    if (error || !data) {
+      showError("Erro ao carregar detalhes do pedido: " + (error?.message || "Pedido não encontrado."));
       console.error(error);
       setPedido(null);
     } else {
       setPedido(data as PedidoDetalhes);
       setNewStatus(data.status);
+      await fetchFrete(id);
     }
     setIsLoading(false);
   };
@@ -98,6 +135,43 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       setPedido(prev => prev ? { ...prev, status: newStatus as PedidoStatus } : null);
     }
     setIsUpdating(false);
+  };
+
+  const handleSaveFrete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pedidoId || !rastreioInput || !transportadoraInput) {
+      showError("Preencha o código de rastreio e a transportadora.");
+      return;
+    }
+
+    setIsSavingFrete(true);
+
+    const freteData = {
+      pedido_id: pedidoId,
+      codigo_rastreio: rastreioInput,
+      transportadora: transportadoraInput,
+      custo: 0, // Mock
+      status: 'Aguardando Envio', // Mock
+    };
+
+    // Tenta inserir ou atualizar (upsert)
+    const { error } = await supabase
+      .from('fretes')
+      .upsert(freteData, { onConflict: 'pedido_id' });
+
+    if (error) {
+      showError("Erro ao salvar frete: " + error.message);
+      console.error(error);
+    } else {
+      showSuccess("Dados de frete salvos com sucesso!");
+      // Atualiza o status do pedido para 'Em Processamento' se ainda estiver 'Aguardando Pagamento'
+      if (pedido?.status === 'Aguardando Pagamento') {
+        setNewStatus('Em Processamento');
+        handleUpdateStatus(); // Chama a atualização de status
+      }
+      fetchFrete(pedidoId); // Recarrega os dados de frete
+    }
+    setIsSavingFrete(false);
   };
 
   const formatCurrency = (value: number) => {
@@ -148,6 +222,54 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
                     {getStatusIcon(pedido.status)} {pedido.status}
                   </span>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Gerenciamento de Envio/Frete */}
+            <Card className="border-atacado-accent/50">
+              <CardContent className="p-4 space-y-3">
+                <h3 className="font-semibold text-atacado-accent flex items-center">
+                  <Truck className="w-4 h-4 mr-2" /> Gerenciamento de Envio
+                </h3>
+                
+                {frete?.codigo_rastreio ? (
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Transportadora:</strong> {frete.transportadora}</p>
+                    <p><strong>Rastreio:</strong> <span className="font-mono bg-gray-100 p-1 rounded">{frete.codigo_rastreio}</span></p>
+                    <p className="text-green-600">Frete registrado. Status: {frete.status || 'Aguardando Envio'}</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSaveFrete} className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="transportadora">Transportadora</Label>
+                      <Input 
+                        id="transportadora" 
+                        placeholder="Ex: Correios, Jadlog" 
+                        value={transportadoraInput} 
+                        onChange={(e) => setTransportadoraInput(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rastreio">Código de Rastreio</Label>
+                      <Input 
+                        id="rastreio" 
+                        placeholder="Ex: BR123456789BR" 
+                        value={rastreioInput} 
+                        onChange={(e) => setRastreioInput(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      size="sm" 
+                      className="w-full bg-atacado-accent hover:bg-orange-600"
+                      disabled={isSavingFrete}
+                    >
+                      {isSavingFrete ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Registrar Frete'}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
 
