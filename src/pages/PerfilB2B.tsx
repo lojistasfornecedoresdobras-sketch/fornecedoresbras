@@ -21,8 +21,13 @@ const PerfilB2B: React.FC = () => {
     );
   }
 
-  if (!b2bProfile) {
-    // Se o usuário estiver autenticado, mas o perfil B2B não foi carregado (erro ou novo usuário)
+  // Condição para exibir o formulário de preenchimento inicial:
+  // 1. Se o perfil B2B não foi carregado (erro ou novo usuário).
+  // 2. Se o perfil foi carregado, mas a role é NULL (usuário recém-criado que precisa se definir como lojista/fornecedor).
+  // Administradores (role !== null) podem pular esta tela.
+  if (!b2bProfile || b2bProfile.role === null) {
+    // Se o usuário for admin, ele já deveria ter uma role definida pelo SQL que rodamos.
+    // Se a role for NULL, ele precisa se definir como lojista/fornecedor.
     return (
       <div className="min-h-screen bg-atacado-background">
         <HeaderAtacado />
@@ -34,12 +39,10 @@ const PerfilB2B: React.FC = () => {
             <CardContent className="pt-6">
               {/* Usamos um perfil mock temporário para permitir o preenchimento inicial */}
               <FormularioPerfilB2B 
-                initialProfile={{ id: 'temp', email: 'temp', role: null, nome_fantasia: null, razao_social: null, cnpj: null, telefone: null, endereco: null }}
-                onProfileUpdated={() => {
+                initialProfile={{ id: b2bProfile?.id || 'temp', email: b2bProfile?.email || 'temp', role: null, nome_fantasia: null, razao_social: null, cnpj: null, telefone: null, endereco: null }}
+                onProfileUpdated={(newProfile) => {
                   // Força o recarregamento do perfil após a atualização
-                  if (b2bProfile?.id) {
-                    fetchB2BProfile(b2bProfile.id);
-                  }
+                  fetchB2BProfile(newProfile.id);
                 }}
               />
             </CardContent>
@@ -98,7 +101,7 @@ const PerfilB2B: React.FC = () => {
                 <p><strong>Telefone:</strong> {b2bProfile.telefone || 'Não informado'}</p>
                 <p><strong>Endereço:</strong> {b2bProfile.endereco || 'Não informado'}</p>
                 <p className="pt-2">
-                  <strong className="text-atacado-accent">Tipo de Usuário:</strong> {isFornecedor ? 'Fornecedor Brás' : 'Lojista Atacado'}
+                  <strong className="text-atacado-accent">Tipo de Usuário:</strong> {b2bProfile.role === 'administrador' ? 'Administrador do Sistema' : (isFornecedor ? 'Fornecedor Brás' : 'Lojista Atacado')}
                 </p>
               </>
             )}
@@ -108,7 +111,39 @@ const PerfilB2B: React.FC = () => {
         {/* Métricas B2B e Navegação (Exibidas apenas se não estiver editando) */}
         {!isEditing && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {isFornecedor ? (
+            {b2bProfile.role === 'administrador' ? (
+              <>
+                {/* Card de Acesso Rápido Admin */}
+                <Link to="/admin">
+                  <Card className="bg-red-600 text-white hover:bg-red-700 transition-colors cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="text-white text-lg flex items-center justify-between">
+                        PAINEL ADMINISTRATIVO <Star className="w-5 h-5" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold">Acesso Total</p>
+                      <p className="text-sm text-gray-300">Gerencie usuários, pedidos e produtos.</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+                
+                {/* Card de Configurações Admin */}
+                <Link to="/admin/config">
+                  <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="text-atacado-primary text-lg flex items-center justify-between">
+                        CONFIGURAÇÕES <Edit className="w-5 h-5 text-atacado-accent" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-3xl font-bold text-atacado-accent">Taxas & Roles</p>
+                      <p className="text-sm text-gray-500">Ajuste as configurações da plataforma.</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </>
+            ) : isFornecedor ? (
               <>
                 {/* Card de Pedidos Recebidos (Fornecedor) */}
                 <Link to="/pedidos-fornecedor">
