@@ -25,9 +25,10 @@ const CatalogoAtacado: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedFornecedorId, setSelectedFornecedorId] = useState<string | null>(null); // Novo estado
   const [sortOrder, setSortOrder] = useState<SortOrder>('created_at_desc'); // Padrão: Mais Recentes
 
-  const fetchProdutos = useCallback(async (term: string, category: string | null, order: SortOrder) => {
+  const fetchProdutos = useCallback(async (term: string, category: string | null, fornecedorId: string | null, order: SortOrder) => {
     setIsLoading(true);
     
     let query = supabase
@@ -43,8 +44,13 @@ const CatalogoAtacado: React.FC = () => {
     if (category && category !== 'Todos') {
       query = query.eq('categoria', category);
     }
+    
+    // 3. Filtro de Fornecedor (NOVO)
+    if (fornecedorId) {
+      query = query.eq('fornecedor_id', fornecedorId);
+    }
 
-    // 3. Ordenação
+    // 4. Ordenação
     let orderByColumn = 'created_at';
     let ascending = false;
 
@@ -73,13 +79,13 @@ const CatalogoAtacado: React.FC = () => {
   useEffect(() => {
     // Debounce para busca e filtros
     const handler = setTimeout(() => {
-      fetchProdutos(searchTerm, selectedCategory, sortOrder);
+      fetchProdutos(searchTerm, selectedCategory, selectedFornecedorId, sortOrder);
     }, 300);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, selectedCategory, sortOrder, fetchProdutos]);
+  }, [searchTerm, selectedCategory, selectedFornecedorId, sortOrder, fetchProdutos]);
 
   const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => {
     // Assumindo: DZ = 12 unidades, CX = 100 unidades, PC = 1 unidade
@@ -106,14 +112,17 @@ const CatalogoAtacado: React.FC = () => {
           setSelectedCategory={setSelectedCategory}
           sortOrder={sortOrder}
           setSortOrder={setSortOrder}
+          selectedFornecedorId={selectedFornecedorId}
+          setSelectedFornecedorId={setSelectedFornecedorId}
         />
 
         {/* Exibindo o termo de busca ativo */}
-        {(searchTerm || selectedCategory) && (
+        {(searchTerm || selectedCategory || selectedFornecedorId) && (
           <p className="text-sm text-gray-600">
             Filtros ativos: 
             {searchTerm && <span className="font-semibold text-atacado-accent ml-1">Busca: "{searchTerm}"</span>}
             {selectedCategory && selectedCategory !== 'Todos' && <span className="font-semibold text-atacado-accent ml-1">Categoria: {selectedCategory}</span>}
+            {selectedFornecedorId && <span className="font-semibold text-atacado-accent ml-1">Fornecedor: {selectedFornecedorId.substring(0, 8)}...</span>}
           </p>
         )}
 

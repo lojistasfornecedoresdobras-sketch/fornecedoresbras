@@ -2,12 +2,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Filter, ChevronDown, ArrowDownUp } from 'lucide-react';
+import FornecedorFilter from './FornecedorFilter'; // Importando o novo componente
 
 interface FiltrosCatalogoProps {
   selectedCategory: string | null;
   setSelectedCategory: (category: string | null) => void;
   sortOrder: 'created_at_desc' | 'preco_atacado_asc' | 'preco_atacado_desc';
   setSortOrder: (order: 'created_at_desc' | 'preco_atacado_asc' | 'preco_atacado_desc') => void;
+  selectedFornecedorId: string | null; // Novo
+  setSelectedFornecedorId: (id: string | null) => void; // Novo
 }
 
 const categorias = ['Todos', 'Roupas', 'Calçados', 'Acessórios', 'Infantil'];
@@ -21,7 +24,9 @@ const FiltrosCatalogo: React.FC<FiltrosCatalogoProps> = ({
   selectedCategory, 
   setSelectedCategory, 
   sortOrder, 
-  setSortOrder 
+  setSortOrder,
+  selectedFornecedorId,
+  setSelectedFornecedorId
 }) => {
 
   const currentSortLabel = sortOptions.find(opt => opt.value === sortOrder)?.label || 'Ordenar';
@@ -30,6 +35,12 @@ const FiltrosCatalogo: React.FC<FiltrosCatalogoProps> = ({
   return (
     <div className="flex flex-wrap gap-2 mb-6 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
       
+      {/* Filtro Fornecedor */}
+      <FornecedorFilter 
+        selectedFornecedorId={selectedFornecedorId}
+        setSelectedFornecedorId={setSelectedFornecedorId}
+      />
+
       {/* Filtro Categoria */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
