@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Package, Truck, Loader2, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
 import { MadeWithDyad } from '@/components/made-with-dyad';
@@ -9,28 +9,25 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
+import PedidoDetalhesFornecedorModal from '@/components/PedidoDetalhesFornecedorModal';
+import { PedidoStatus } from '@/types/pedido';
 
 interface Pedido {
   id: string;
   created_at: string;
   total_atacado: number;
-  status: string;
+  status: PedidoStatus;
   lojista_id: string;
-  // Adicionar informações do lojista (nome/email) em um cenário real, mas por enquanto usamos apenas o ID
 }
 
 const PedidosFornecedor: React.FC = () => {
   const { b2bProfile, isLoading: isAuthLoading } = useAuth();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPedidoId, setSelectedPedidoId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isAuthLoading && b2bProfile?.role === 'fornecedor') {
-      fetchPedidos();
-    }
-  }, [isAuthLoading, b2bProfile]);
-
-  const fetchPedidos = async () => {
+  const fetchPedidos = useCallback(async () => {
     if (!b2bProfile?.id) return;
 
     setIsLoading(true);
@@ -48,13 +45,29 @@ const PedidosFornecedor: React.FC = () => {
       setPedidos(data as Pedido[]);
     }
     setIsLoading(false);
+  }, [b2bProfile]);
+
+  useEffect(() => {
+    if (!isAuthLoading && b2bProfile?.role === 'fornecedor') {
+      fetchPedidos();
+    }
+  }, [isAuthLoading, b2bProfile, fetchPedidos]);
+
+  const handleOpenModal = (pedidoId: string) => {
+    setSelectedPedidoId(pedidoId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedPedidoId(null);
   };
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: PedidoStatus) => {
     let classes = "px-2 py-1 rounded-full text-xs font-medium";
     let icon = null;
 
@@ -144,7 +157,12 @@ const PedidosFornecedor: React.FC = () => {
                       <TableCell className="text-center">{getStatusBadge(pedido.status)}</TableCell>
                       <TableCell className="text-center text-sm">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</TableCell>
                       <TableCell className="text-center">
-                        <Button variant="ghost" size="sm" className="text-atacado-primary">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-atacado-primary"
+                          onClick={() => handleOpenModal(pedido.id)}
+                        >
                           Detalhes <ArrowRight className="w-4 h-4 ml-1" />
                         </Button>
                       </TableCell>
@@ -163,6 +181,13 @@ const PedidosFornecedor: React.FC = () => {
         </p>
         <MadeWithDyad />
       </footer>
+
+      <PedidoDetalhesFornecedorModal
+        pedidoId={selectedPedidoId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onUpdate={fetchPedidos}
+      />
     </div>
   );
 };
