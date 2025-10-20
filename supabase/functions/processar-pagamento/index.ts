@@ -45,16 +45,17 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  const { pedidoId } = data;
+  // Recebe o totalComFrete do cliente
+  const { pedidoId, totalComFrete } = data; 
 
-  if (!pedidoId) {
-    return new Response(JSON.stringify({ error: 'Missing pedidoId in request body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (!pedidoId || totalComFrete === undefined) {
+    return new Response(JSON.stringify({ error: 'Missing required fields (pedidoId, totalComFrete) in request body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   try {
     // 2. Buscar Pedido e Taxa de Comissão Ativa
     
-    // Busca o pedido (incluindo o total)
+    // Busca o pedido (apenas para verificar status e total_atacado)
     const { data: pedido, error: pedidoError } = await supabase
       .from('pedidos')
       .select('id, total_atacado, lojista_id, fornecedor_id, status')
@@ -82,14 +83,21 @@ serve(async (req) => {
     const taxaComissao = taxaData?.taxa || 0; // 0% se não houver taxa definida
 
     // 3. Calcular Split
-    const valorTotal = pedido.total_atacado;
-    const splitPlataforma = valorTotal * (taxaComissao / 100);
-    const splitFornecedor = valorTotal - splitPlataforma;
+    // O split é calculado APENAS sobre o valor dos produtos (total_atacado),
+    // pois o frete deve ser repassado integralmente ao fornecedor (ou transportadora).
+    const valorProdutos = pedido.total_atacado;
+    const valorFrete = totalComFrete - valorProdutos;
+    
+    const comissaoPlataforma = valorProdutos * (taxaComissao / 100);
+    
+    // Repasse ao fornecedor = Valor dos Produtos - Comissão + Valor do Frete
+    const splitFornecedor = valorProdutos - comissaoPlataforma + valorFrete;
+    const splitPlataforma = comissaoPlataforma; // A plataforma só recebe a comissão
 
     // 4. Registrar Pagamento (Simulação)
     const pagamentoData = {
       pedido_id: pedidoId,
-      valor_total: valorTotal,
+      valor_total: totalComFrete, // Valor total pago pelo lojista (Produtos + Frete)
       status: 'Aprovado',
       metodo: 'Cartão de Crédito (Mock)',
       parcelas: 1,
@@ -123,7 +131,7 @@ serve(async (req) => {
         message: 'Pagamento processado e pedido atualizado.',
         pedidoId: pedidoId,
         split: {
-          total: valorTotal,
+          totalPago: totalComFrete.toFixed(2),
           fornecedor: splitFornecedor.toFixed(2),
           plataforma: splitPlataforma.toFixed(2),
           taxa: taxaComissao,
