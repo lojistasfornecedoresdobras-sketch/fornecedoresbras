@@ -18,7 +18,7 @@ import EditarProduto from "./pages/EditarProduto";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import GerenciarUsuariosAdmin from "./pages/GerenciarUsuariosAdmin";
 import GerenciarProdutosAdmin from "./pages/GerenciarProdutosAdmin";
-import ConfiguracoesAdmin from "./pages/ConfiguracoesAdmin"; // Importando a nova página
+import ConfiguracoesAdmin from "./pages/ConfiguracoesAdmin";
 import { AuthProvider } from "./hooks/use-auth";
 import { CartProvider } from "./hooks/use-cart";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -47,8 +47,8 @@ const App = () => (
                 <Route path="/meus-pedidos" element={<PedidosLojista />} />
               </Route>
 
-              {/* Rotas Protegidas (Acesso Apenas Fornecedor) */}
-              <Route element={<ProtectedRoute allowedRoles={['fornecedor']} />}>
+              {/* Rotas Protegidas (Acesso Fornecedor E Administrador) */}
+              <Route element={<ProtectedRoute allowedRoles={['fornecedor', 'administrador']} />}>
                 <Route path="/estoque" element={<EstoqueFornecedor />} />
                 <Route path="/cadastro-produto" element={<CadastroProduto />} />
                 <Route path="/editar-produto/:id" element={<EditarProduto />} />

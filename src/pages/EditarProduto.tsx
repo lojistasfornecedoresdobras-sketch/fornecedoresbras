@@ -45,8 +45,10 @@ const EditarProduto: React.FC = () => {
       return;
     }
 
-    // Verifica se o produto pertence ao fornecedor logado
-    if (data.fornecedor_id !== b2bProfile?.id) {
+    const isAdministrator = b2bProfile?.role === 'administrador';
+    
+    // Verifica se o produto pertence ao fornecedor logado, a menos que seja um administrador
+    if (!isAdministrator && data.fornecedor_id !== b2bProfile?.id) {
       showError("Acesso negado. Você não é o proprietário deste produto.");
       navigate('/estoque', { replace: true });
       return;
@@ -64,17 +66,22 @@ const EditarProduto: React.FC = () => {
       foto_url: data.foto_url || '/placeholder.svg',
     });
     setIsLoading(false);
-  }, [b2bProfile?.id, navigate]);
+  }, [b2bProfile?.id, b2bProfile?.role, navigate]);
 
   useEffect(() => {
-    if (!isAuthLoading && b2bProfile?.role === 'fornecedor' && id) {
+    // Permite carregar se for fornecedor OU administrador
+    if (!isAuthLoading && (b2bProfile?.role === 'fornecedor' || b2bProfile?.role === 'administrador') && id) {
       fetchProduct(id);
     }
   }, [isAuthLoading, b2bProfile, id, fetchProduct]);
 
   const handleSuccess = () => {
-    // Após a edição, redireciona para o estoque
-    navigate('/estoque');
+    // Após a edição, redireciona para o estoque (se for fornecedor) ou para o gerenciamento de produtos (se for admin)
+    if (b2bProfile?.role === 'administrador') {
+      navigate('/admin/produtos');
+    } else {
+      navigate('/estoque');
+    }
   };
 
   if (isAuthLoading || isLoading) {
@@ -85,8 +92,8 @@ const EditarProduto: React.FC = () => {
     );
   }
 
-  // Redirecionamento de segurança
-  if (b2bProfile?.role !== 'fornecedor') {
+  // Redirecionamento de segurança: A rota deve ser acessível apenas por fornecedores ou administradores.
+  if (b2bProfile?.role !== 'fornecedor' && b2bProfile?.role !== 'administrador') {
     return <Navigate to="/perfil" replace />;
   }
 
@@ -96,7 +103,11 @@ const EditarProduto: React.FC = () => {
       
       <main className="container mx-auto p-4 space-y-6 pt-8">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/estoque')}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate(b2bProfile?.role === 'administrador' ? '/admin/produtos' : '/estoque')}
+          >
             <ArrowLeft className="w-6 h-6 text-atacado-primary" />
           </Button>
           <h1 className="text-3xl font-bold text-atacado-primary">✏️ EDITAR PRODUTO #{id?.substring(0, 8)}</h1>
