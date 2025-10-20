@@ -1,0 +1,130 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Save } from 'lucide-react';
+import { B2BUser, UserRole } from '@/types/b2b';
+import { supabase } from '@/integrations/supabase/client';
+import { showError, showSuccess } from '@/utils/toast';
+
+interface FormularioPerfilB2BProps {
+  initialProfile: B2BUser;
+  onProfileUpdated: (newProfile: B2BUser) => void;
+}
+
+const roles: UserRole[] = ['lojista', 'fornecedor'];
+
+const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfile, onProfileUpdated }) => {
+  const [formData, setFormData] = useState({
+    nome_fantasia: initialProfile.nome_fantasia || '',
+    razao_social: initialProfile.razao_social || '',
+    cnpj: initialProfile.cnpj || '',
+    telefone: initialProfile.telefone || '',
+    endereco: initialProfile.endereco || '',
+    role: initialProfile.role || '',
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setFormData({
+      nome_fantasia: initialProfile.nome_fantasia || '',
+      razao_social: initialProfile.razao_social || '',
+      cnpj: initialProfile.cnpj || '',
+      telefone: initialProfile.telefone || '',
+      endereco: initialProfile.endereco || '',
+      role: initialProfile.role || '',
+    });
+  }, [initialProfile]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSelectChange = (id: string, value: string) => {
+    setFormData(prev => ({ ...prev, [id]: value as UserRole }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    const updateData = {
+      nome_fantasia: formData.nome_fantasia,
+      razao_social: formData.razao_social,
+      cnpj: formData.cnpj,
+      telefone: formData.telefone,
+      endereco: formData.endereco,
+      role: formData.role,
+    };
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update(updateData)
+      .eq('id', initialProfile.id)
+      .select()
+      .single();
+
+    if (error) {
+      showError("Erro ao atualizar perfil: " + error.message);
+      console.error(error);
+    } else {
+      showSuccess("Perfil atualizado com sucesso!");
+      onProfileUpdated({ ...initialProfile, ...data });
+    }
+    setIsSaving(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="nome_fantasia">Nome Fantasia (Loja)</Label>
+          <Input id="nome_fantasia" required value={formData.nome_fantasia} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="razao_social">Razão Social</Label>
+          <Input id="razao_social" required value={formData.razao_social} onChange={handleChange} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="cnpj">CNPJ</Label>
+          <Input id="cnpj" required value={formData.cnpj} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="telefone">Telefone</Label>
+          <Input id="telefone" value={formData.telefone} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="role">Tipo de Usuário</Label>
+          <Select required value={formData.role} onValueChange={(v) => handleSelectChange('role', v)}>
+            <SelectTrigger id="role">
+              <SelectValue placeholder="Selecione a função" />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map(r => <SelectItem key={r} value={r}>{r === 'lojista' ? 'Lojista (Comprador)' : 'Fornecedor (Vendedor)'}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="endereco">Endereço Principal</Label>
+        <Input id="endereco" value={formData.endereco} onChange={handleChange} />
+      </div>
+
+      <Button 
+        type="submit" 
+        className="w-full bg-atacado-accent hover:bg-orange-600 text-white font-bold py-3"
+        disabled={isSaving}
+      >
+        {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <><Save className="h-5 w-5 mr-2" /> SALVAR DADOS B2B</>}
+      </Button>
+    </form>
+  );
+};
+
+export default FormularioPerfilB2B;
