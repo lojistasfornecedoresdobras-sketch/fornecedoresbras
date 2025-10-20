@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Package, Truck, CheckCircle, XCircle, ArrowRight, MapPin } from 'lucide-react';
+import { Loader2, Package, Truck, CheckCircle, XCircle, ArrowRight, MapPin, DollarSign } from 'lucide-react';
 import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
@@ -35,9 +35,20 @@ interface Frete {
   status: string | null;
 }
 
+// Tipagem para Pagamento (incluindo split)
+interface Pagamento {
+  valor_total: number;
+  status: string;
+  metodo: string;
+  parcelas: number;
+  split_fornecedor: number;
+  split_plataforma: number;
+}
+
 const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps> = ({ pedidoId, isOpen, onClose, onUpdate }) => {
   const [pedido, setPedido] = useState<PedidoDetalhes | null>(null);
   const [frete, setFrete] = useState<Frete | null>(null);
+  const [pagamento, setPagamento] = useState<Pagamento | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingFrete, setIsSavingFrete] = useState(false);
@@ -67,6 +78,24 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
     }
   }, []);
 
+  const fetchPagamento = useCallback(async (pedidoId: string) => {
+    const { data, error } = await supabase
+      .from('pagamentos')
+      .select('valor_total, status, metodo, parcelas, split_fornecedor, split_plataforma')
+      .eq('pedido_id', pedidoId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+      console.error("Erro ao buscar pagamento:", error);
+    }
+    
+    if (data) {
+      setPagamento(data as Pagamento);
+    } else {
+      setPagamento(null);
+    }
+  }, []);
+
   const fetchPedidoDetalhes = useCallback(async (id: string) => {
     setIsLoading(true);
     
@@ -93,9 +122,10 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
       setPedido(data as PedidoDetalhes);
       setNewStatus(data.status);
       await fetchFrete(id);
+      await fetchPagamento(id);
     }
     setIsLoading(false);
-  }, [fetchFrete]);
+  }, [fetchFrete, fetchPagamento]);
 
   useEffect(() => {
     if (isOpen && pedidoId) {
@@ -103,6 +133,7 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
     } else {
       setPedido(null);
       setFrete(null);
+      setPagamento(null);
       setNewStatus('');
     }
   }, [isOpen, pedidoId, fetchPedidoDetalhes]);
@@ -295,11 +326,29 @@ const PedidoDetalhesFornecedorModal: React.FC<PedidoDetalhesFornecedorModalProps
             
             <Separator />
 
-            {/* Resumo Financeiro */}
-            <div className="flex justify-between text-lg font-bold text-atacado-accent">
-              <span>Total do Pedido</span>
-              <span>{formatCurrency(pedido.total_atacado)}</span>
-            </div>
+            {/* Resumo Financeiro (Split) */}
+            <h3 className="font-semibold text-atacado-primary flex items-center">
+              <DollarSign className="w-4 h-4 mr-2" /> Resumo Financeiro
+            </h3>
+            {pagamento ? (
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Total Pago pelo Lojista:</span>
+                  <span className="font-bold">{formatCurrency(pagamento.valor_total)}</span>
+                </div>
+                <div className="flex justify-between text-green-700">
+                  <span>Seu Repasse (Fornecedor):</span>
+                  <span className="font-bold">{formatCurrency(pagamento.split_fornecedor)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Comissão Plataforma:</span>
+                  <span>{formatCurrency(pagamento.split_plataforma)}</span>
+                </div>
+                <p className="text-xs text-gray-500 pt-1">Pagamento: {pagamento.status} via {pagamento.metodo}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-yellow-600">Pagamento ainda não processado ou em análise.</p>
+            )}
 
             <Separator />
 

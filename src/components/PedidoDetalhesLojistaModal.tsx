@@ -8,7 +8,7 @@ import { PedidoDetalhes, PedidoStatus } from '@/types/pedido';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useProductNames } from '@/hooks/use-product-names';
-import { useB2BUserNames } from '@/hooks/use-b2b-user-names'; // Importando o novo hook
+import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
 
 interface PedidoDetalhesLojistaModalProps {
   pedidoId: string | null;
@@ -23,9 +23,18 @@ interface Frete {
   status: string | null;
 }
 
+// Tipagem para Pagamento
+interface Pagamento {
+  valor_total: number;
+  status: string;
+  metodo: string;
+  parcelas: number;
+}
+
 const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({ pedidoId, isOpen, onClose }) => {
   const [pedido, setPedido] = useState<PedidoDetalhes | null>(null);
   const [frete, setFrete] = useState<Frete | null>(null);
+  const [pagamento, setPagamento] = useState<Pagamento | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -34,6 +43,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
     } else {
       setPedido(null);
       setFrete(null);
+      setPagamento(null);
     }
   }, [isOpen, pedidoId]);
 
@@ -52,6 +62,24 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
       setFrete(data as Frete);
     } else {
       setFrete(null);
+    }
+  };
+
+  const fetchPagamento = async (pedidoId: string) => {
+    const { data, error } = await supabase
+      .from('pagamentos')
+      .select('valor_total, status, metodo, parcelas')
+      .eq('pedido_id', pedidoId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
+      console.error("Erro ao buscar pagamento:", error);
+    }
+    
+    if (data) {
+      setPagamento(data as Pagamento);
+    } else {
+      setPagamento(null);
     }
   };
 
@@ -80,6 +108,7 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
     } else {
       setPedido(data as PedidoDetalhes);
       await fetchFrete(id);
+      await fetchPagamento(id);
     }
     setIsLoading(false);
   };
@@ -164,6 +193,26 @@ const PedidoDetalhesLojistaModal: React.FC<PedidoDetalhesLojistaModalProps> = ({
                     {getStatusDisplay(pedido.status)}
                   </span>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Pagamento */}
+            <Card className="border-green-500/50">
+              <CardContent className="p-4 space-y-2">
+                <h3 className="font-semibold text-green-600 flex items-center">
+                  <CreditCard className="w-4 h-4 mr-2" /> Pagamento
+                </h3>
+                {pagamento ? (
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Status:</strong> <span className="font-semibold text-green-700">{pagamento.status}</span></p>
+                    <p><strong>Método:</strong> {pagamento.metodo}</p>
+                    <p><strong>Parcelas:</strong> {pagamento.parcelas}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Aguardando confirmação de pagamento.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
