@@ -6,8 +6,18 @@ import { useCart } from '@/hooks/use-cart';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
-const HeaderAtacado: React.FC = () => {
+interface HeaderAtacadoProps {
+  onSearchChange?: (term: string) => void;
+}
+
+const HeaderAtacado: React.FC<HeaderAtacadoProps> = ({ onSearchChange }) => {
   const { totalItems } = useCart();
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onSearchChange) {
+      onSearchChange(e.target.value);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white shadow-sm">
@@ -24,6 +34,7 @@ const HeaderAtacado: React.FC = () => {
             <Input
               placeholder="🔍 Busca Atacado..."
               className="pl-9 h-9"
+              onChange={handleSearchChange}
             />
           </div>
         </div>

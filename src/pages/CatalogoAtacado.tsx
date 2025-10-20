@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import HeaderAtacado from '@/components/HeaderAtacado';
 import ProductCardAtacado from '@/components/ProductCardAtacado';
 import FiltrosCatalogo from '@/components/FiltrosCatalogo';
@@ -21,17 +21,23 @@ interface Produto {
 const CatalogoAtacado: React.FC = () => {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(''); // Novo estado para busca
 
-  useEffect(() => {
-    fetchProdutos();
-  }, []);
-
-  const fetchProdutos = async () => {
+  const fetchProdutos = useCallback(async (term: string = '') => {
     setIsLoading(true);
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id') // Incluindo fornecedor_id
+      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id')
       .order('created_at', { ascending: false });
+
+    // Adiciona filtro de busca se houver termo
+    if (term) {
+      // Filtra pelo nome do produto (case-insensitive search)
+      query = query.ilike('nome', `%${term}%`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       showError("Erro ao carregar catálogo: " + error.message);
@@ -40,7 +46,18 @@ const CatalogoAtacado: React.FC = () => {
       setProdutos(data as Produto[]);
     }
     setIsLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    // Dispara a busca inicial ou quando o termo de busca muda
+    const handler = setTimeout(() => {
+      fetchProdutos(searchTerm);
+    }, 300); // Debounce de 300ms para evitar muitas requisições
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, fetchProdutos]);
 
   const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => {
     // Assumindo: DZ = 12 unidades, CX = 100 unidades, PC = 1 unidade
@@ -57,12 +74,19 @@ const CatalogoAtacado: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-atacado-background">
-      <HeaderAtacado />
+      <HeaderAtacado onSearchChange={setSearchTerm} /> {/* Passando o setter para o Header */}
       
       <main className="container mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold text-atacado-primary pt-4">📦 CATÁLOGO ATACADO BRÁS</h1>
         
         <FiltrosCatalogo />
+
+        {/* Exibindo o termo de busca ativo */}
+        {searchTerm && (
+          <p className="text-sm text-gray-600">
+            Resultados para: <span className="font-semibold text-atacado-accent">"{searchTerm}"</span>
+          </p>
+        )}
 
         {/* Grade de Produtos */}
         {isLoading ? (
@@ -71,7 +95,7 @@ const CatalogoAtacado: React.FC = () => {
           </div>
         ) : produtos.length === 0 ? (
           <div className="text-center py-10 text-gray-500">
-            Nenhum produto encontrado no catálogo.
+            Nenhum produto encontrado no catálogo {searchTerm ? `para "${searchTerm}"` : ''}.
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
