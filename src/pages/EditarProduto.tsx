@@ -20,6 +20,11 @@ interface ProdutoFormData {
   categoria: string;
   minimo_compra: string;
   foto_url: string;
+  // Novos campos de frete
+  peso_kg: string;
+  comprimento_cm: string;
+  largura_cm: string;
+  altura_cm: string;
 }
 
 const EditarProduto: React.FC = () => {
@@ -34,7 +39,7 @@ const EditarProduto: React.FC = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('produtos')
-      .select('*')
+      .select('*, peso_kg, comprimento_cm, largura_cm, altura_cm') // Incluindo novos campos
       .eq('id', productId)
       .single();
 
@@ -64,6 +69,11 @@ const EditarProduto: React.FC = () => {
       categoria: data.categoria || '',
       minimo_compra: data.minimo_compra?.toString() || '12',
       foto_url: data.foto_url || '/placeholder.svg',
+      // Mapeamento dos novos campos
+      peso_kg: data.peso_kg?.toString() || '',
+      comprimento_cm: data.comprimento_cm?.toString() || '',
+      largura_cm: data.largura_cm?.toString() || '',
+      altura_cm: data.altura_cm?.toString() || '',
     });
     setIsLoading(false);
   }, [b2bProfile?.id, b2bProfile?.role, navigate]);

@@ -18,6 +18,11 @@ interface ProdutoData {
   categoria: string;
   minimo_compra: string;
   foto_url: string;
+  // Novos campos de frete
+  peso_kg: string;
+  comprimento_cm: string;
+  largura_cm: string;
+  altura_cm: string;
 }
 
 interface FormularioProdutoProps {
@@ -39,13 +44,25 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     quantidade_estoque: '',
     unidade_medida: '',
     categoria: '',
-    minimo_compra: '6', // Alterado de '12' para '6'
+    minimo_compra: '6',
     foto_url: '/placeholder.svg',
+    // Valores iniciais para frete
+    peso_kg: '',
+    comprimento_cm: '',
+    largura_cm: '',
+    altura_cm: '',
   });
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...initialData,
+        // Garante que os campos numéricos sejam strings vazias se forem 0 ou null
+        peso_kg: initialData.peso_kg || '',
+        comprimento_cm: initialData.comprimento_cm || '',
+        largura_cm: initialData.largura_cm || '',
+        altura_cm: initialData.altura_cm || '',
+      });
     }
   }, [initialData]);
 
@@ -75,6 +92,11 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       categoria: formData.categoria,
       minimo_compra: parseInt(formData.minimo_compra),
       foto_url: formData.foto_url,
+      // Novos campos de frete
+      peso_kg: parseFloat(formData.peso_kg) || 0,
+      comprimento_cm: parseFloat(formData.comprimento_cm) || 0,
+      largura_cm: parseFloat(formData.largura_cm) || 0,
+      altura_cm: parseFloat(formData.altura_cm) || 0,
     };
 
     let error;
@@ -113,8 +135,12 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
           quantidade_estoque: '',
           unidade_medida: '',
           categoria: '',
-          minimo_compra: '6', // Alterado para '6'
+          minimo_compra: '6',
           foto_url: '/placeholder.svg',
+          peso_kg: '',
+          comprimento_cm: '',
+          largura_cm: '',
+          altura_cm: '',
         });
       }
     }
@@ -170,6 +196,27 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
               {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+      
+      {/* NOVOS CAMPOS DE FRETE */}
+      <h3 className="text-lg font-semibold text-atacado-primary pt-4 border-t">Dimensões e Peso (Por Unidade)</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="peso_kg">Peso (kg)</Label>
+          <Input id="peso_kg" type="number" step="0.01" placeholder="0.5" required value={formData.peso_kg} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="comprimento_cm">Comprimento (cm)</Label>
+          <Input id="comprimento_cm" type="number" step="0.1" placeholder="20" required value={formData.comprimento_cm} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="largura_cm">Largura (cm)</Label>
+          <Input id="largura_cm" type="number" step="0.1" placeholder="15" required value={formData.largura_cm} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="altura_cm">Altura (cm)</Label>
+          <Input id="altura_cm" type="number" step="0.1" placeholder="5" required value={formData.altura_cm} onChange={handleChange} />
         </div>
       </div>
 
