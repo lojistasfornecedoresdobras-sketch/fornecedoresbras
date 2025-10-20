@@ -10,9 +10,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   const { isAuthenticated, isLoading, b2bProfile } = useAuth();
-  const location = useLocation(); // Adicionado useLocation para usar location.pathname
+  const location = useLocation();
 
   if (isLoading) {
+    console.log("ProtectedRoute: Loading authentication state...");
     return (
       <div className="min-h-screen flex items-center justify-center bg-atacado-background">
         <Loader2 className="h-8 w-8 animate-spin text-atacado-primary" />
@@ -21,29 +22,35 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   }
 
   if (!isAuthenticated) {
+    console.log("ProtectedRoute: Not authenticated. Redirecting to /login.");
     return <Navigate to="/login" replace />;
   }
 
-  // Log de depuração
-  console.log("ProtectedRoute: User authenticated. Role:", b2bProfile?.role, "Path:", location.pathname);
-
-  // Se houver roles permitidas, verifica se o perfil B2B corresponde
-  // Se b2bProfile.role for null, ele não estará incluído em allowedRoles, o que é o comportamento desejado.
   const userRole = b2bProfile?.role;
-  
+  const currentPath = location.pathname;
+
+  console.log(`ProtectedRoute: User authenticated. Role: ${userRole}. Path: ${currentPath}. Allowed Roles: ${allowedRoles ? allowedRoles.join(', ') : 'Any B2B'}`);
+
+  // 1. Redirecionamento de segurança para Administrador
+  if (userRole === 'administrador' && !currentPath.startsWith('/admin')) {
+    console.log("ProtectedRoute: Admin detected on non-admin path. Redirecting to /admin.");
+    return <Navigate to="/admin" replace />;
+  }
+
+  // 2. Verificação de Role Específica
   if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
-    // Se a rota exige uma role específica, mas o usuário não a tem, redireciona para a home
-    console.log("ProtectedRoute: Access denied for role", userRole, "on path", location.pathname);
+    console.log(`ProtectedRoute: Access denied. Role ${userRole} not in allowed roles.`);
     return <Navigate to="/" replace />;
   }
   
-  // Redirecionamento de segurança para Administrador:
-  // Se o usuário for administrador e estiver tentando acessar uma rota comum (que não seja /admin), 
-  // redirecionamos para o painel de administração.
-  if (b2bProfile?.role === 'administrador' && !location.pathname.startsWith('/admin')) {
-    console.log("ProtectedRoute: Admin redirecting to /admin");
-    return <Navigate to="/admin" replace />;
+  // 3. Se o perfil B2B for nulo (usuário novo), redireciona para o perfil para preenchimento
+  // Nota: O PerfilB2B.tsx lida com a exibição do formulário se a role for null.
+  // Se o admin tiver role='administrador', ele passa por aqui.
+  if (!userRole && currentPath !== '/perfil') {
+    console.log("ProtectedRoute: Role is null. Redirecting to /perfil for setup.");
+    return <Navigate to="/perfil" replace />;
   }
+
 
   return <Outlet />;
 };
