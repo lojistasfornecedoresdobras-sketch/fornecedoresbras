@@ -15,7 +15,8 @@ export const fetchB2BProfile = async (userId: string): Promise<B2BUser | null> =
 
   if (error) {
     console.error("Erro ao buscar perfil B2B:", error);
-    showError("Erro ao carregar perfil do usuário.");
+    // Não mostramos um toast aqui, pois pode ser chamado muitas vezes durante a inicialização.
+    // Apenas retornamos null.
     return null;
   }
   
@@ -28,29 +29,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const handleAuthChange = async (session: any) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        const profile = await fetchB2BProfile(currentUser.id);
+        setB2BProfile(profile);
+      } else {
+        setB2BProfile(null);
+      }
+      setIsLoading(false);
+    };
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-          const profile = await fetchB2BProfile(currentUser.id);
-          setB2BProfile(profile);
-        } else {
-          setB2BProfile(null);
+      (event, session) => {
+        // Garante que o estado de carregamento seja redefinido após qualquer evento de autenticação
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+          handleAuthChange(session);
         }
-        setIsLoading(false);
       }
     );
 
     // Fetch initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        fetchB2BProfile(currentUser.id).then(setB2BProfile);
-      }
-      setIsLoading(false);
+      handleAuthChange(session);
     });
 
     return () => {
@@ -59,18 +62,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    // Não precisamos definir isLoading para true aqui, pois o onAuthStateChange
-    // será acionado e definirá o estado final.
+    // Força o estado de carregamento para true para evitar flashes de conteúdo
+    setIsLoading(true); 
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       showError("Erro ao sair: " + error.message);
+      setIsLoading(false); // Se falhar, limpa o loading
     } else {
-      // O onAuthStateChange (event === 'SIGNED_OUT') irá definir user=null, b2bProfile=null e isLoading=false.
+      // O onAuthStateChange (event === 'SIGNED_OUT') irá lidar com a limpeza final do estado.
       // Se o onAuthStateChange for lento, podemos forçar a limpeza imediata do estado local
       // para que o ProtectedRoute reaja mais rápido.
       setUser(null);
       setB2BProfile(null);
-      setIsLoading(false); // Garante que o ProtectedRoute saia do estado de loading
+      setIsLoading(false); // Garante que o ProtectedRoute saia do estado de loading e redirecione
     }
   };
 
