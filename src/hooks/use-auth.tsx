@@ -59,15 +59,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    setIsLoading(true);
+    // Não precisamos definir isLoading para true aqui, pois o onAuthStateChange
+    // será acionado e definirá o estado final.
     const { error } = await supabase.auth.signOut();
     if (error) {
       showError("Erro ao sair: " + error.message);
     } else {
+      // O onAuthStateChange (event === 'SIGNED_OUT') irá definir user=null, b2bProfile=null e isLoading=false.
+      // Se o onAuthStateChange for lento, podemos forçar a limpeza imediata do estado local
+      // para que o ProtectedRoute reaja mais rápido.
       setUser(null);
       setB2BProfile(null);
+      setIsLoading(false); // Garante que o ProtectedRoute saia do estado de loading
     }
-    setIsLoading(false);
   };
 
   const isAuthenticated = !!user;
