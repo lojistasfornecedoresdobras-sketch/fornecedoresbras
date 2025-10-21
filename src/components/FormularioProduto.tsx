@@ -41,13 +41,31 @@ const unidades = ['DZ', 'PC', 'CX'];
 // URL de placeholder garantida
 const MOCK_IMAGE_URL = 'https://via.placeholder.com/100x100?text=B2B';
 
-// Função de simulação de upload para o Supabase Storage
-const simulateUpload = async (file: File, fornecedorId: string): Promise<string> => {
-    // Simulação: retorna a URL do placeholder externa para garantir a exibição.
-    console.log(`Simulando upload de ${file.name} para: ${fornecedorId}`);
-    
-    // Retorna a URL do placeholder mockada
-    return MOCK_IMAGE_URL;
+// Função REAL de upload para o Supabase Storage
+const uploadImage = async (file: File, fornecedorId: string): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+    // Caminho: fornecedorId/produtoId/nome_do_arquivo
+    const filePath = `${fornecedorId}/${fileName}`; 
+
+    const { data, error } = await supabase.storage
+        .from('product_images')
+        .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+        });
+
+    if (error) {
+        console.error("Erro real de upload:", error);
+        throw new Error(`Falha ao enviar imagem: ${error.message}`);
+    }
+
+    // Retorna a URL pública
+    const { data: publicUrlData } = supabase.storage
+        .from('product_images')
+        .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
 };
 
 const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEditing, onSuccess }) => {
@@ -128,6 +146,8 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       if (removedPhoto?.file) {
         URL.revokeObjectURL(removedPhoto.url);
       }
+      
+      // Se a foto já estava salva no DB (não tem 'file'), ela será removida do DB no handleSubmit
 
       return { ...prev, fotos: updatedFotos };
     });
@@ -146,27 +166,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     let message;
 
     try {
-      // 1. Processar Upload de Novas Fotos
-      const photosToUpload = formData.fotos.filter(f => f.file);
-      const photosToKeep = formData.fotos.filter(f => !f.file); // Fotos já salvas (com URL pública)
-
-      const uploadedPhotos: FotoProduto[] = [];
-      for (const photo of photosToUpload) {
-        // A URL retornada agora é a URL mockada externa
-        const publicUrl = await simulateUpload(photo.file!, b2bProfile.id); 
-        uploadedPhotos.push({
-          id: `db-${Date.now()}-${Math.random()}`, // Novo ID simulado do DB
-          url: publicUrl,
-          ordem: photo.ordem,
-          file: undefined, // Remove o objeto File
-        });
-        // Revoga a URL blob após 'upload'
-        URL.revokeObjectURL(photo.url);
-      }
-
-      const finalPhotos = [...photosToKeep, ...uploadedPhotos].sort((a, b) => a.ordem - b.ordem);
-
-      // 2. Salvar/Atualizar Produto
+      // 1. Salvar/Atualizar Produto (Primeiro, para obter o ID se for um novo produto)
       const produtoPayload = {
         nome: formData.nome,
         preco_atacado: parseFloat(formData.preco_atacado),
@@ -207,9 +207,32 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         throw new Error(error.message);
       }
       
-      // 3. Gerenciar Fotos no DB (Deletar antigas e inserir novas)
+      // 2. Processar Upload de Novas Fotos e Gerenciar Fotos no DB
       if (produtoId) {
-        // Deletar todas as fotos antigas
+        const photosToUpload = formData.fotos.filter(f => f.file);
+        const photosToKeep = formData.fotos.filter(f => !f.file); // Fotos já salvas (com URL pública)
+
+        // A. Upload das novas fotos
+        const uploadedPhotos: FotoProduto[] = [];
+        for (const photo of photosToUpload) {
+          // Upload REAL
+          const publicUrl = await uploadImage(photo.file!, b2bProfile.id); 
+          uploadedPhotos.push({
+            id: `db-${Date.now()}-${Math.random()}`, 
+            url: publicUrl,
+            ordem: photo.ordem,
+            file: undefined, 
+          });
+          // Revoga a URL blob após upload
+          URL.revokeObjectURL(photo.url);
+        }
+
+        const finalPhotos = [...photosToKeep, ...uploadedPhotos].sort((a, b) => a.ordem - b.ordem);
+
+        // B. Deletar todas as fotos antigas e inserir as finais
+        // Isso garante que fotos removidas pelo usuário sejam apagadas e a ordem seja mantida.
+        
+        // Deletar todas as fotos antigas (para simplificar a lógica de upsert/delete)
         const { error: deleteError } = await supabase
           .from('fotos_produto')
           .delete()
@@ -219,7 +242,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
           console.error("Erro ao limpar fotos antigas:", deleteError);
         }
 
-        // Inserir todas as fotos finais (incluindo as recém-uploadadas)
+        // Inserir todas as fotos finais
         if (finalPhotos.length > 0) {
           const fotosPayload = finalPhotos.map(f => ({
             produto_id: produtoId,
@@ -235,12 +258,8 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
             console.error("Erro ao salvar fotos:", insertPhotosError);
           }
         }
-      }
-
-      showSuccess(message);
-      
-      // Se estiver editando, atualiza o estado local para refletir as URLs salvas (mockadas)
-      if (isEditing) {
+        
+        // Atualiza o estado local com as URLs públicas reais
         setFormData(prev => ({
             ...prev,
             fotos: finalPhotos.map(f => ({
@@ -251,8 +270,10 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
             })),
         }));
       }
+
+      showSuccess(message);
       
-      // Chama onSuccess para redirecionar (se não for edição, ou se for edição e o usuário quiser sair)
+      // Chama onSuccess para redirecionar
       onSuccess();
       
       if (!isEditing) {
