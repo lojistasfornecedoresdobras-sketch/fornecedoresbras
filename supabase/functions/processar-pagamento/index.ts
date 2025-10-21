@@ -11,6 +11,7 @@ const corsHeaders = {
 // Chave Secreta do Pagar.me (deve ser configurada como um segredo no Supabase Console)
 // @ts-ignore
 const PAGARME_API_KEY = Deno.env.get('PAGARME_API_KEY');
+const PAGARME_API_URL = 'https://api.pagar.me/1/transactions';
 
 // ID MOCK do Recebedor da Plataforma (Admin)
 const PLATFORM_RECIPIENT_ID = 're_PLATFORM_MOCK_ID';
@@ -24,20 +25,30 @@ const adminSupabase = createClient(
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Função de simulação de chamada à API do Pagar.me
-async function mockPagarmeTransaction(transactionData: any) {
-    console.log("Simulando transação Pagar.me com chave:", PAGARME_API_KEY ? 'Chave Carregada' : 'Chave Ausente');
-    console.log("Dados da Transação (Mock):", transactionData);
+// Função para criar a transação real no Pagar.me
+async function createPagarmeTransaction(transactionData: any) {
+    if (!PAGARME_API_KEY) {
+        throw new Error("PAGARME_API_KEY não configurada.");
+    }
 
-    // Simulação de resposta da API para PIX (assumindo que o pagamento foi confirmado via webhook)
-    return {
-        status: 'paid', // Simula pagamento aprovado
-        id: `pagarme_pix_${transactionData.pedidoId.substring(0, 8)}_${Date.now()}`,
-        amount: transactionData.totalComFrete * 100, // Pagar.me usa centavos
-        payment_method: 'pix', // Simula Pix
-        installments: 1, 
-        pix_code: '00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865802BR5925NOME DO RECEBEDOR MOCK6008BRASILIA62070503***63041D3D',
-    };
+    const response = await fetch(PAGARME_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // Autenticação Basic Auth: 'sk_live_...' + ':'
+            'Authorization': `Basic ${btoa(PAGARME_API_KEY + ':')}`, 
+        },
+        body: JSON.stringify(transactionData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        console.error("Pagar.me API Error:", result);
+        throw new Error(`Falha na transação Pagar.me: ${result.errors?.[0]?.message || result.message || 'Erro desconhecido'}`);
+    }
+
+    return result;
 }
 
 serve(async (req) => {
@@ -121,7 +132,6 @@ serve(async (req) => {
 
     if (fornecedorError || !fornecedorProfile?.pagarme_recipient_id) {
         console.error('Fornecedor Recipient ID not found:', fornecedorError);
-        // Em um cenário real, isso seria um erro crítico
         return new Response(JSON.stringify({ error: 'ID do Recebedor do Fornecedor não encontrado. O split não pode ser realizado.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
@@ -138,36 +148,73 @@ serve(async (req) => {
     const splitFornecedor = valorProdutos - comissaoPlataforma + valorFrete;
     const splitPlataforma = comissaoPlataforma; 
 
-    // 4. Simular Transação Pagar.me (agora simulando Pix)
-    const transactionData = {
-        pedidoId: pedidoId,
-        totalComFrete: totalComFrete,
-        // Usando os IDs de recebedor reais/mockados
-        splits: [
-            { recipient_id: fornecedorRecipientId, amount: Math.round(splitFornecedor * 100) },
-            { recipient_id: PLATFORM_RECIPIENT_ID, amount: Math.round(splitPlataforma * 100) },
-        ]
+    // 4. Montar Payload da Transação Pagar.me (PIX)
+    const amountInCents = Math.round(totalComFrete * 100);
+    
+    const transactionPayload = {
+        // Dados da transação
+        amount: amountInCents,
+        payment_method: 'pix',
+        postback_url: `https://elnzbfvdlkessfzraufu.supabase.co/functions/v1/pagarme-webhook`, // URL real do webhook
+        metadata: {
+            pedido_id: pedidoId,
+            lojista_id: pedido.lojista_id,
+            fornecedor_id: pedido.fornecedor_id,
+        },
+        // Configuração do Split
+        split_rules: [
+            { 
+                recipient_id: fornecedorRecipientId, 
+                amount: Math.round(splitFornecedor * 100),
+                liable: true, // O fornecedor é responsável por chargebacks/fraudes
+                charge_processing_fee: false, // A plataforma paga a taxa de processamento
+            },
+            { 
+                recipient_id: PLATFORM_RECIPIENT_ID, 
+                amount: Math.round(splitPlataforma * 100),
+                liable: false,
+                charge_processing_fee: true, // A plataforma absorve a taxa de processamento
+            },
+        ],
+        // Dados do cliente (Mockados, em produção viriam do perfil do lojista)
+        customer: {
+            external_id: pedido.lojista_id,
+            name: 'Lojista B2B Mock',
+            email: 'lojista@atacado.com',
+            type: 'company',
+            country: 'br',
+            documents: [{
+                type: 'cnpj',
+                number: '12345678000100',
+            }],
+        },
+        // Configuração específica do Pix
+        pix_expiration_date: new Date(Date.now() + 3600000).toISOString(), // 1 hora de validade
     };
 
-    const pagarmeResponse = await mockPagarmeTransaction(transactionData);
+    // 5. Criar Transação Real no Pagar.me
+    const pagarmeResponse = await createPagarmeTransaction(transactionPayload);
 
-    if (pagarmeResponse.status !== 'paid') {
-        throw new Error(`Pagamento recusado pelo Pagar.me. Status: ${pagarmeResponse.status}`);
+    // O status inicial do Pix será 'waiting_payment' ou 'pending'
+    const initialStatus = pagarmeResponse.status;
+
+    if (initialStatus === 'refused' || initialStatus === 'failed') {
+        throw new Error(`Transação recusada pelo Pagar.me. Status: ${initialStatus}`);
     }
 
-    // 5. Registrar Pagamento
+    // 6. Registrar Pagamento (Status inicial: Waiting Payment)
     const pagamentoData = {
       pedido_id: pedidoId,
       valor_total: totalComFrete, // Valor total pago pelo lojista (Produtos + Frete)
-      status: 'Aprovado',
-      metodo: pagarmeResponse.payment_method, // 'pix'
-      parcelas: pagarmeResponse.installments,
+      status: initialStatus, // waiting_payment
+      metodo: 'pix',
+      parcelas: 1,
       split_fornecedor: splitFornecedor,
       split_plataforma: splitPlataforma,
       pagar_me_id: pagarmeResponse.id,
     };
 
-    const { error: pagamentoError } = await adminSupabase // Usando adminSupabase para garantir que o pagamento seja registrado
+    const { error: pagamentoError } = await adminSupabase
       .from('pagamentos')
       .insert([pagamentoData]);
 
@@ -176,26 +223,31 @@ serve(async (req) => {
       throw new Error('Falha ao registrar pagamento no banco de dados.');
     }
 
-    // 6. Atualizar Status do Pedido
-    const { error: updateError } = await adminSupabase // Usando adminSupabase para garantir que o status seja atualizado
+    // 7. Atualizar Status do Pedido (Status inicial: Aguardando Pagamento)
+    // Mantemos o status do pedido como 'Aguardando Pagamento'. O webhook irá atualizá-lo para 'Em Processamento' quando o Pix for pago.
+    const { error: updateError } = await adminSupabase
       .from('pedidos')
       .update({ 
-        status: 'Em Processamento',
         pagar_me_transaction_id: pagarmeResponse.id, // Salva o ID da transação
       })
       .eq('id', pedidoId);
 
     if (updateError) {
-      console.error('Error updating order status:', updateError);
-      throw new Error('Falha ao atualizar status do pedido.');
+      console.error('Error updating order transaction ID:', updateError);
+      // Não é um erro fatal, mas deve ser logado
     }
 
     return new Response(
       JSON.stringify({ 
-        message: 'Pagamento Pix processado e pedido atualizado.',
+        message: 'Transação Pix criada com sucesso. Aguardando pagamento.',
         pedidoId: pedidoId,
         pagarmeId: pagarmeResponse.id,
-        paymentMethod: pagarmeResponse.payment_method,
+        paymentMethod: 'pix',
+        status: initialStatus,
+        pix_details: {
+            qr_code: pagarmeResponse.qr_code, // Dados reais do Pix
+            qr_code_text: pagarmeResponse.qr_code_text,
+        },
         split: {
           totalPago: totalComFrete.toFixed(2),
           fornecedor: splitFornecedor.toFixed(2),

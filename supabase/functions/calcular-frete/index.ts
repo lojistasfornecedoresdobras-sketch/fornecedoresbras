@@ -8,15 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// --- CONFIGURAÇÃO DO MELHOR ENVIO (MOCK) ---
+// --- CONFIGURAÇÃO DO MELHOR ENVIO ---
 // O token real deve ser configurado como um segredo no Supabase Console.
 // @ts-ignore
 const MELHOR_ENVIO_TOKEN = Deno.env.get('MELHOR_ENVIO_TOKEN') || 'MOCK_TOKEN_12345';
 const MELHOR_ENVIO_URL = 'https://api.melhorenvio.com.br/api/v2/me/shipment/calculate'; // URL real
 
-// Função de simulação de chamada à API do Melhor Envio
+// Função de simulação de chamada à API do Melhor Envio (MANTIDA COMO MOCK PARA SIMPLICIDADE)
 async function mockMelhorEnvioCalculation(payload: any) {
-    // Em um ambiente real, você faria um fetch para a MELHOR_ENVIO_URL
+    // Em um ambiente de produção, você faria um fetch para a MELHOR_ENVIO_URL
     // usando o MELHOR_ENVIO_TOKEN no header Authorization.
     
     console.log("Simulando cálculo de frete para payload:", payload);
@@ -91,7 +91,6 @@ serve(async (req) => {
 
   try {
     // 2. Buscar CEP de Origem do Fornecedor
-    // Agora buscamos o campo 'cep' dedicado
     const { data: fornecedorProfile, error: profileError } = await supabase
       .from('usuarios')
       .select('cep') 
@@ -137,7 +136,7 @@ serve(async (req) => {
         },
     };
 
-    // 5. Chamar API (Mock)
+    // 5. Chamar API (Mock) - Em produção, esta linha seria substituída por uma chamada real ao Melhor Envio
     const rates = await mockMelhorEnvioCalculation(quotePayload);
 
     // 6. Retornar as Cotações
