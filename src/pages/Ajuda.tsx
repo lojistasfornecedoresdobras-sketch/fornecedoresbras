@@ -13,7 +13,7 @@ const faqItems = [
   },
   {
     question: "Qual é o pedido mínimo?",
-    answer: "O pedido mínimo é geralmente de 12 unidades (1 Dúzia) por produto, mas verifique a unidade de medida (DZ, PC, CX) e a quantidade mínima de compra na página de cada produto."
+    answer: "O pedido mínimo é geralmente de 6 unidades por produto, mas verifique a unidade de medida (DZ, PC, CX) e a quantidade mínima de compra na página de cada produto."
   },
   {
     question: "Como funciona o frete?",
