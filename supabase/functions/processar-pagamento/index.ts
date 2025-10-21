@@ -26,14 +26,15 @@ async function mockPagarmeTransaction(transactionData: any) {
     console.log("Simulando transação Pagar.me com chave:", PAGARME_API_KEY ? 'Chave Carregada' : 'Chave Ausente');
     console.log("Dados da Transação (Mock):", transactionData);
 
-    // Em um ambiente real, você faria um fetch POST para a API do Pagar.me aqui.
-    // Exemplo de resposta simulada:
+    // Simulação de resposta da API para PIX (assumindo que o pagamento foi confirmado via webhook)
     return {
         status: 'paid', // Simula pagamento aprovado
-        id: `pagarme_trans_${transactionData.pedidoId.substring(0, 8)}_${Date.now()}`,
+        id: `pagarme_pix_${transactionData.pedidoId.substring(0, 8)}_${Date.now()}`,
         amount: transactionData.totalComFrete * 100, // Pagar.me usa centavos
-        payment_method: 'credit_card', // Mock
-        installments: 1, // Mock
+        payment_method: 'pix', // Simula Pix
+        installments: 1, 
+        // Em um cenário real, aqui viria o payload do Pix (QR Code, Pix Copy/Paste)
+        pix_code: '00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865802BR5925NOME DO RECEBEDOR MOCK6008BRASILIA62070503***63041D3D',
     };
 }
 
@@ -119,7 +120,7 @@ serve(async (req) => {
     const splitFornecedor = valorProdutos - comissaoPlataforma + valorFrete;
     const splitPlataforma = comissaoPlataforma; 
 
-    // 4. Simular Transação Pagar.me
+    // 4. Simular Transação Pagar.me (agora simulando Pix)
     const transactionData = {
         pedidoId: pedidoId,
         totalComFrete: totalComFrete,
@@ -134,6 +135,8 @@ serve(async (req) => {
     const pagarmeResponse = await mockPagarmeTransaction(transactionData);
 
     if (pagarmeResponse.status !== 'paid') {
+        // Se estivéssemos simulando o fluxo completo do Pix, o status seria 'pending' aqui.
+        // Mas para o checkout, assumimos sucesso.
         throw new Error(`Pagamento recusado pelo Pagar.me. Status: ${pagarmeResponse.status}`);
     }
 
@@ -142,14 +145,14 @@ serve(async (req) => {
       pedido_id: pedidoId,
       valor_total: totalComFrete, // Valor total pago pelo lojista (Produtos + Frete)
       status: 'Aprovado',
-      metodo: pagarmeResponse.payment_method,
+      metodo: pagarmeResponse.payment_method, // 'pix'
       parcelas: pagarmeResponse.installments,
       split_fornecedor: splitFornecedor,
       split_plataforma: splitPlataforma,
       pagar_me_id: pagarmeResponse.id,
     };
 
-    const { error: pagamentoError } = await supabase
+    const { error: pagamentoError } = await adminSupabase // Usando adminSupabase para garantir que o pagamento seja registrado
       .from('pagamentos')
       .insert([pagamentoData]);
 
@@ -159,7 +162,7 @@ serve(async (req) => {
     }
 
     // 6. Atualizar Status do Pedido
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminSupabase // Usando adminSupabase para garantir que o status seja atualizado
       .from('pedidos')
       .update({ 
         status: 'Em Processamento',
@@ -174,9 +177,10 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        message: 'Pagamento processado e pedido atualizado.',
+        message: 'Pagamento Pix processado e pedido atualizado.',
         pedidoId: pedidoId,
         pagarmeId: pagarmeResponse.id,
+        paymentMethod: pagarmeResponse.payment_method,
         split: {
           totalPago: totalComFrete.toFixed(2),
           fornecedor: splitFornecedor.toFixed(2),
