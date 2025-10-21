@@ -38,13 +38,16 @@ interface FormularioProdutoProps {
 const categorias = ['Roupas', 'Calçados', 'Acessórios', 'Infantil'];
 const unidades = ['DZ', 'PC', 'CX'];
 
+// URL de placeholder garantida
+const MOCK_IMAGE_URL = 'https://via.placeholder.com/100x100?text=B2B';
+
 // Função de simulação de upload para o Supabase Storage
 const simulateUpload = async (file: File, fornecedorId: string): Promise<string> => {
-    // Simulação: retorna a URL do placeholder local para garantir que o carregamento funcione.
+    // Simulação: retorna a URL do placeholder externa para garantir a exibição.
     console.log(`Simulando upload de ${file.name} para: ${fornecedorId}`);
     
-    // Retorna a URL do placeholder local
-    return "/placeholder.svg";
+    // Retorna a URL do placeholder mockada
+    return MOCK_IMAGE_URL;
 };
 
 const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEditing, onSuccess }) => {
@@ -149,7 +152,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
 
       const uploadedPhotos: FotoProduto[] = [];
       for (const photo of photosToUpload) {
-        // A URL retornada agora é o placeholder
+        // A URL retornada agora é a URL mockada externa
         const publicUrl = await simulateUpload(photo.file!, b2bProfile.id); 
         uploadedPhotos.push({
           id: `db-${Date.now()}-${Math.random()}`, // Novo ID simulado do DB
@@ -236,8 +239,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
 
       showSuccess(message);
       
-      // Se estiver editando, atualiza o estado local para refletir as URLs salvas (placeholders)
-      // Isso garante que, se o usuário não for redirecionado, ele veja o placeholder.
+      // Se estiver editando, atualiza o estado local para refletir as URLs salvas (mockadas)
       if (isEditing) {
         setFormData(prev => ({
             ...prev,
@@ -278,16 +280,14 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     }
   };
 
-  // Handler para garantir que o placeholder seja exibido se a URL for o placeholder
+  // Handler para garantir que o placeholder seja exibido se a URL falhar
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
-    // Se a URL já for o placeholder, não tente carregar novamente para evitar loop
-    if (target.src.endsWith('/placeholder.svg')) {
-        // Se for o placeholder, apenas garante que o elemento não tenha uma URL quebrada
-        target.style.opacity = '1'; // Garante visibilidade se o navegador estiver escondendo
+    // Se a URL já for a URL mockada, não tente carregar novamente para evitar loop
+    if (target.src === MOCK_IMAGE_URL) {
         return;
     }
-    target.src = "/placeholder.svg";
+    target.src = MOCK_IMAGE_URL;
   };
 
   return (
