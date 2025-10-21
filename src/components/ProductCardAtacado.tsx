@@ -57,6 +57,10 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({
           src={imageUrl} 
           alt={name} 
           className="w-full h-40 object-cover rounded-t-lg"
+          onError={(e) => {
+            // Se a imagem falhar ao carregar (ex: URL blob: inválida ou mock falho), usa o placeholder
+            (e.target as HTMLImageElement).src = "/placeholder.svg";
+          }}
         />
       </CardHeader>
       <CardContent className="p-3">
