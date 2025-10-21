@@ -24,9 +24,18 @@ interface CartContextType {
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
+  calculateTotalUnits: (item: CartItem) => number; // NOVO
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+const getUnitsPerAtacadoUnit = (unit: 'DZ' | 'PC' | 'CX'): number => {
+    switch (unit) {
+        case 'DZ': return 12;
+        case 'CX': return 100; // Assumindo 100 unidades por caixa, pode variar
+        case 'PC': default: return 1;
+    }
+};
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -37,6 +46,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     items.reduce((sum, item) => sum + item.priceAtacado * item.quantity, 0), 
     [items]
   );
+  
+  const calculateTotalUnits = (item: CartItem): number => {
+      return item.quantity * getUnitsPerAtacadoUnit(item.unit);
+  };
 
   const addItem = (newItem: Omit<CartItem, 'quantity'>, quantity: number) => {
     if (quantity <= 0) return;
@@ -89,7 +102,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <CartContext.Provider value={{ items, totalItems, totalPrice, addItem, removeItem, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ items, totalItems, totalPrice, addItem, removeItem, updateQuantity, clearCart, calculateTotalUnits }}>
       {children}
     </CartContext.Provider>
   );

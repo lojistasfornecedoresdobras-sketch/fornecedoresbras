@@ -14,7 +14,7 @@ const requisitosComuns = [
 
 const requisitosLojista = [
   "Comprovar atividade comercial (e-commerce, loja física, etc.).",
-  "Aceitar o pedido mínimo de atacado (geralmente 6 unidades por produto).",
+  "Aceitar o pedido mínimo de atacado (6 unidades totais por fornecedor, podendo mesclar produtos).",
 ];
 
 const requisitosFornecedor = [

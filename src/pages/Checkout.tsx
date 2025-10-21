@@ -44,6 +44,7 @@ interface GroupedOrder {
   fornecedorNome: string;
   items: CartItemWithFornecedor[];
   subtotal: number;
+  totalUnits: number; // NOVO: Total de unidades (peças) neste grupo
   pedidoId?: string; // Adicionado para armazenar o ID do pedido criado
 }
 
@@ -52,9 +53,11 @@ interface SelectedFreteMap {
     [fornecedorId: string]: FreteRate | null;
 }
 
+const MIN_UNITS_PER_SUPPLIER = 6;
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, calculateTotalUnits } = useCart();
   const { b2bProfile, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [cepDestino, setCepDestino] = useState('');
@@ -74,7 +77,7 @@ const Checkout: React.FC = () => {
   // 2. Buscar nomes fantasia dos fornecedores
   const { userNames: fornecedoresMap, isLoading: isFetchingFornecedores } = useB2BUserNames(uniqueFornecedorIds);
 
-  // 3. Agrupar itens por Fornecedor
+  // 3. Agrupar itens por Fornecedor e calcular total de unidades
   useEffect(() => {
     if (items.length === 0 || isFetchingFornecedores) {
       setGroupedOrdersState([]);
@@ -84,6 +87,7 @@ const Checkout: React.FC = () => {
     const groups = items.reduce((acc, item) => {
       const id = item.fornecedorId;
       const fornecedorNome = fornecedoresMap[id] || `Fornecedor ID: ${id.substring(0, 8)}`;
+      const units = calculateTotalUnits(item); // Calcula unidades (peças)
 
       if (!acc[id]) {
         acc[id] = {
@@ -91,15 +95,17 @@ const Checkout: React.FC = () => {
           fornecedorNome: fornecedorNome,
           items: [],
           subtotal: 0,
+          totalUnits: 0, // Inicializa
         };
       }
       acc[id].items.push(item as CartItemWithFornecedor);
       acc[id].subtotal += item.priceAtacado * item.quantity;
+      acc[id].totalUnits += units; // Soma as unidades
       return acc;
     }, {} as Record<string, GroupedOrder>);
 
     setGroupedOrdersState(Object.values(groups));
-  }, [items, fornecedoresMap, isFetchingFornecedores]);
+  }, [items, fornecedoresMap, isFetchingFornecedores, calculateTotalUnits]);
 
   // 4. Gerenciar seleção de frete
   const handleRateSelected = (fornecedorId: string, rate: FreteRate | null) => {
@@ -121,11 +127,21 @@ const Checkout: React.FC = () => {
     if (groupedOrdersState.length === 0) return false;
     return groupedOrdersState.every(group => selectedFretes[group.fornecedorId] && selectedFretes[group.fornecedorId]?.price !== undefined);
   }, [groupedOrdersState, selectedFretes]);
+  
+  // NOVO: Validação de Mínimo por Fornecedor
+  const isMinimumMetForAll = useMemo(() => {
+    if (groupedOrdersState.length === 0) return false;
+    return groupedOrdersState.every(group => group.totalUnits >= MIN_UNITS_PER_SUPPLIER);
+  }, [groupedOrdersState]);
 
   const handleFinalizeOrder = async () => {
     if (!b2bProfile || !user || groupedOrdersState.length === 0) {
       showError("Erro: Dados do usuário ou carrinho inválidos.");
       return;
+    }
+    if (!isMinimumMetForAll) {
+        showError(`O pedido mínimo é de ${MIN_UNITS_PER_SUPPLIER} unidades totais por fornecedor. Por favor, adicione mais itens.`);
+        return;
     }
     if (!isFreteSelectedForAll) {
         showError("Por favor, selecione uma opção de frete para todos os fornecedores.");
@@ -317,6 +333,13 @@ const Checkout: React.FC = () => {
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               
+              {/* Validação de Mínimo */}
+              {group.totalUnits < MIN_UNITS_PER_SUPPLIER && (
+                <div className="p-3 bg-red-100 border border-red-400 rounded-lg text-red-700 font-medium text-sm">
+                    ⚠️ Mínimo não atingido: Adicione mais {MIN_UNITS_PER_SUPPLIER - group.totalUnits} unidades (peças) para este fornecedor.
+                </div>
+              )}
+
               {/* Lista de Itens (Resumo) */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-atacado-primary">Itens ({group.items.length})</h3>
@@ -377,12 +400,16 @@ const Checkout: React.FC = () => {
           <Button 
             className="w-full bg-atacado-accent hover:bg-orange-600 text-white font-bold py-3"
             onClick={handleFinalizeOrder}
-            disabled={isProcessing || !isFreteSelectedForAll || cepDestino.length !== 8}
+            disabled={isProcessing || !isFreteSelectedForAll || cepDestino.length !== 8 || !isMinimumMetForAll} // Adiciona validação de mínimo
           >
             {isProcessing ? <Loader2 className="h-5 w-5 animate-spin" /> : `CONFIRMAR ${groupedOrdersState.length} PEDIDO(S) E PAGAR ${formatCurrency(totalGeral)}`}
           </Button>
-          {!isFreteSelectedForAll && (
-            <p className="text-sm text-red-500 mt-2 text-center">Selecione o CEP e o frete para todos os fornecedores.</p>
+          {(!isFreteSelectedForAll || !isMinimumMetForAll || cepDestino.length !== 8) && (
+            <p className="text-sm text-red-500 mt-2 text-center">
+                {cepDestino.length !== 8 && "Preencha o CEP de destino. "}
+                {!isMinimumMetForAll && `O pedido mínimo é de ${MIN_UNITS_PER_SUPPLIER} unidades por fornecedor. `}
+                {!isFreteSelectedForAll && "Selecione o frete para todos os fornecedores."}
+            </p>
           )}
         </Card>
       </main>
