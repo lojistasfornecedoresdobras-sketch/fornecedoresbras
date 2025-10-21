@@ -55,7 +55,7 @@ const GerenciarUsuariosAdmin: React.FC = () => {
 
   const handleDeleteUser = async (targetUserId: string, userName: string) => {
     if (!user?.id) {
-      showError("Erro de autenticação.");
+      showError("Erro de autenticação. Por favor, faça login novamente.");
       return;
     }
     
@@ -71,8 +71,19 @@ const GerenciarUsuariosAdmin: React.FC = () => {
     setIsDeleting(targetUserId);
 
     try {
+      // Obtém o token JWT da sessão atual
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error("Token de autenticação não encontrado.");
+      }
+
       const { data, error } = await supabase.functions.invoke('delete-user', {
         body: { targetUserId },
+        headers: {
+          Authorization: `Bearer ${token}`, // Passa o token para a função Edge
+        },
       });
 
       if (error) {
