@@ -91,26 +91,24 @@ serve(async (req) => {
 
   try {
     // 2. Buscar CEP de Origem do Fornecedor
-    // Esta consulta agora deve funcionar devido à nova política RLS.
+    // Agora buscamos o campo 'cep' dedicado
     const { data: fornecedorProfile, error: profileError } = await supabase
       .from('usuarios')
-      .select('endereco') 
+      .select('cep') 
       .eq('id', fornecedorId)
       .single();
 
     if (profileError) {
         console.error('RLS/DB Error fetching supplier address:', profileError);
-        return new Response(JSON.stringify({ error: 'Erro de banco de dados ao buscar endereço do fornecedor.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Erro de banco de dados ao buscar CEP do fornecedor.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
-    if (!fornecedorProfile?.endereco) {
-        return new Response(JSON.stringify({ error: 'Endereço de origem do fornecedor não preenchido. Peça ao fornecedor para completar o perfil.' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    
-    // MOCK: Extrair CEP do endereço (Em um cenário real, teríamos um campo CEP dedicado)
-    // Assumindo que o CEP é o primeiro item no campo 'endereco'
-    const cepOrigem = fornecedorProfile.endereco.split(',')[0].trim() || '01001000'; 
+    const cepOrigem = fornecedorProfile?.cep;
 
+    if (!cepOrigem || cepOrigem.length !== 8) {
+        return new Response(JSON.stringify({ error: 'CEP de origem do fornecedor não preenchido ou inválido. Peça ao fornecedor para completar o perfil.' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    
     // 3. Preparar Volumes para o Melhor Envio
     const volumes = items.map((item: any) => {
         // Multiplica as dimensões e peso pela quantidade de unidades de atacado (DZ/PC/CX)

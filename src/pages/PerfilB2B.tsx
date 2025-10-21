@@ -39,7 +39,17 @@ const PerfilB2B: React.FC = () => {
             <CardContent className="pt-6">
               {/* Usamos um perfil mock temporário para permitir o preenchimento inicial */}
               <FormularioPerfilB2B 
-                initialProfile={{ id: b2bProfile?.id || 'temp', email: b2bProfile?.email || 'temp', role: null, nome_fantasia: null, razao_social: null, cnpj: null, telefone: null, endereco: null }}
+                initialProfile={{ 
+                  id: b2bProfile?.id || 'temp', 
+                  email: b2bProfile?.email || 'temp', 
+                  role: null, 
+                  nome_fantasia: null, 
+                  razao_social: null, 
+                  cnpj: null, 
+                  telefone: null, 
+                  endereco: null,
+                  cep: null, // CORREÇÃO: Adicionando o campo 'cep'
+                }}
                 onProfileUpdated={(newProfile) => {
                   // Força o recarregamento do perfil após a atualização
                   fetchB2BProfile(newProfile.id);
@@ -100,6 +110,7 @@ const PerfilB2B: React.FC = () => {
                 <p><strong>Razão Social:</strong> {b2bProfile.razao_social || 'Não informado'}</p>
                 <p><strong>Telefone:</strong> {b2bProfile.telefone || 'Não informado'}</p>
                 <p><strong>Endereço:</strong> {b2bProfile.endereco || 'Não informado'}</p>
+                <p><strong>CEP:</strong> {b2bProfile.cep || 'Não informado'}</p>
                 <p className="pt-2">
                   <strong className="text-atacado-accent">Tipo de Usuário:</strong> {b2bProfile.role === 'administrador' ? 'Administrador do Sistema' : (isFornecedor ? 'Fornecedor Brás' : 'Lojista Atacado')}
                 </p>

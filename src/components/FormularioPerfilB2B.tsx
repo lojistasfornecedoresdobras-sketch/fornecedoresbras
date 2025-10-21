@@ -24,6 +24,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     cnpj: initialProfile.cnpj || '',
     telefone: initialProfile.telefone || '',
     endereco: initialProfile.endereco || '',
+    cep: initialProfile.cep || '', // NOVO CAMPO
     role: initialProfile.role || '',
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -35,13 +36,21 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       cnpj: initialProfile.cnpj || '',
       telefone: initialProfile.telefone || '',
       endereco: initialProfile.endereco || '',
+      cep: initialProfile.cep || '', // NOVO CAMPO
       role: initialProfile.role || '',
     });
   }, [initialProfile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    
+    let processedValue = value;
+    if (id === 'cep') {
+      // Remove caracteres não numéricos e limita a 8 dígitos
+      processedValue = value.replace(/\D/g, '').substring(0, 8);
+    }
+
+    setFormData(prev => ({ ...prev, [id]: processedValue }));
   };
 
   const handleSelectChange = (id: string, value: string) => {
@@ -61,6 +70,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       cnpj: formData.cnpj,
       telefone: formData.telefone,
       endereco: formData.endereco,
+      cep: formData.cep, // NOVO CAMPO
       role: roleToUpdate,
     };
 
@@ -128,9 +138,22 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="endereco">Endereço Principal</Label>
-        <Input id="endereco" value={formData.endereco} onChange={handleChange} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="endereco">Endereço Principal (Rua, Número, Bairro)</Label>
+          <Input id="endereco" value={formData.endereco} onChange={handleChange} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="cep">CEP de Origem/Entrega</Label>
+          <Input 
+            id="cep" 
+            value={formData.cep} 
+            onChange={handleChange} 
+            placeholder="Apenas números (8 dígitos)"
+            maxLength={8}
+            required
+          />
+        </div>
       </div>
 
       <Button 

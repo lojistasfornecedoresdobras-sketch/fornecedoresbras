@@ -11,6 +11,7 @@ export interface B2BUser {
   cnpj: string | null;
   telefone: string | null;
   endereco: string | null;
+  cep: string | null; // NOVO CAMPO
 }
 
 export interface AuthContextType {
