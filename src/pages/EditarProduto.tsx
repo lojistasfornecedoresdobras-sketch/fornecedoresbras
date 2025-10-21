@@ -20,7 +20,6 @@ interface ProdutoFormData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
-  // Removido foto_url
   
   // Novos campos de frete
   peso_kg: string;
@@ -72,7 +71,7 @@ const EditarProduto: React.FC = () => {
     // Ordena as fotos pela ordem
     const fotosOrdenadas = (data.fotos_produto as FotoProduto[] || []).sort((a, b) => a.ordem - b.ordem);
 
-    setInitialData({
+    const loadedData: ProdutoFormData = {
       id: data.id,
       nome: data.nome || '',
       preco_atacado: data.preco_atacado?.toString() || '',
@@ -88,7 +87,11 @@ const EditarProduto: React.FC = () => {
       altura_cm: data.altura_cm?.toString() || '',
       // Mapeamento das fotos
       fotos: fotosOrdenadas,
-    });
+    };
+    
+    console.log("Dados do produto carregados (incluindo fotos):", loadedData.fotos); // LOG DE DEBUG
+
+    setInitialData(loadedData);
     setIsLoading(false);
   }, [b2bProfile?.id, b2bProfile?.role, navigate]);
 
@@ -116,7 +119,7 @@ const EditarProduto: React.FC = () => {
     );
   }
 
-  // Redirecionamento de segurança: A rota deve ser acessível apenas por fornecedores ou administradores.
+  // Redirecionamento de segurança
   if (b2bProfile?.role !== 'fornecedor' && b2bProfile?.role !== 'administrador') {
     return <Navigate to="/perfil" replace />;
   }
