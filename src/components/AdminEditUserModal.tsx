@@ -64,6 +64,15 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
+    
+    if (!formData.cnpj) {
+      showError("O campo CPF/CNPJ é obrigatório.");
+      return;
+    }
+    if (!formData.role) {
+      showError("O campo Tipo de Usuário (Role) é obrigatório.");
+      return;
+    }
 
     setIsSaving(true);
     

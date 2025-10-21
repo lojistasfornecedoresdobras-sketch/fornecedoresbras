@@ -59,6 +59,20 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.cnpj) {
+      showError("O campo CPF/CNPJ é obrigatório.");
+      return;
+    }
+    if (!formData.cep || formData.cep.length !== 8) {
+      showError("O campo CEP é obrigatório e deve ter 8 dígitos.");
+      return;
+    }
+    if (!formData.role) {
+      showError("O campo Tipo de Usuário é obrigatório.");
+      return;
+    }
+
     setIsSaving(true);
 
     // Garante que a role 'administrador' não seja sobrescrita se já estiver definida
@@ -70,10 +84,10 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     const updateData = {
       nome_fantasia: toNullIfEmpty(formData.nome_fantasia),
       razao_social: toNullIfEmpty(formData.razao_social),
-      cnpj: formData.cnpj, // CNPJ é obrigatório no formulário
+      cnpj: formData.cnpj,
       telefone: toNullIfEmpty(formData.telefone),
       endereco: toNullIfEmpty(formData.endereco),
-      cep: formData.cep, // CEP é obrigatório no formulário
+      cep: formData.cep,
       role: roleToUpdate,
     };
 
