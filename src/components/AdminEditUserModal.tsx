@@ -69,7 +69,7 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
 
     const updateData = {
       nome_fantasia: formData.nome_fantasia,
-      razao_social: formData.razao_social || null, // Garante que seja null se vazio
+      razao_social: formData.razao_social,
       cnpj: formData.cnpj,
       telefone: formData.telefone,
       endereco: formData.endereco,
@@ -121,16 +121,15 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nome_fantasia">Nome Fantasia (Loja)</Label>
+                <Label htmlFor="nome_fantasia">Nome Fantasia / Nome Completo (Se CPF)</Label>
                 <Input 
                   id="nome_fantasia" 
-                  required 
                   value={formData.nome_fantasia || ''} 
                   onChange={handleChange} 
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="razao_social">Razão Social (Opcional para CPF)</Label>
+                <Label htmlFor="razao_social">Razão Social (Opcional se CPF)</Label>
                 <Input 
                   id="razao_social" 
                   value={formData.razao_social || ''} 

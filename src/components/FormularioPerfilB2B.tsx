@@ -66,7 +66,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
     const updateData = {
       nome_fantasia: formData.nome_fantasia,
-      razao_social: formData.razao_social || null, // Garante que seja null se vazio
+      razao_social: formData.razao_social,
       cnpj: formData.cnpj,
       telefone: formData.telefone,
       endereco: formData.endereco,
@@ -98,12 +98,22 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="nome_fantasia">Nome Fantasia (Loja)</Label>
-          <Input id="nome_fantasia" required value={formData.nome_fantasia} onChange={handleChange} />
+          <Label htmlFor="nome_fantasia">Nome Fantasia / Nome Completo (Se CPF)</Label>
+          <Input 
+            id="nome_fantasia" 
+            // Removido 'required' para permitir flexibilidade com CPF
+            value={formData.nome_fantasia} 
+            onChange={handleChange} 
+          />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="razao_social">Razão Social (Opcional para CPF)</Label>
-          <Input id="razao_social" value={formData.razao_social} onChange={handleChange} />
+          <Label htmlFor="razao_social">Razão Social (Opcional se CPF)</Label>
+          <Input 
+            id="razao_social" 
+            // Removido 'required' para permitir flexibilidade com CPF
+            value={formData.razao_social} 
+            onChange={handleChange} 
+          />
         </div>
       </div>
 
@@ -155,6 +165,10 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
           />
         </div>
       </div>
+      
+      <p className="text-sm text-gray-500">
+        * Se estiver usando CPF, preencha o campo "Nome Fantasia" com seu nome completo.
+      </p>
 
       <Button 
         type="submit" 
