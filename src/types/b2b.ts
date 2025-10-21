@@ -12,6 +12,7 @@ export interface B2BUser {
   telefone: string | null;
   endereco: string | null;
   cep: string | null; // NOVO CAMPO
+  pagarme_recipient_id: string | null; // NOVO CAMPO
 }
 
 export interface AuthContextType {

@@ -74,6 +74,7 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
       telefone: formData.telefone,
       endereco: formData.endereco,
       role: formData.role,
+      pagarme_recipient_id: formData.pagarme_recipient_id, // NOVO CAMPO
     };
 
     const { error } = await supabase
@@ -172,6 +173,18 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
             <div className="space-y-2">
               <Label htmlFor="endereco">Endereço Principal</Label>
               <Input id="endereco" value={formData.endereco || ''} onChange={handleChange} />
+            </div>
+            
+            {/* NOVO CAMPO: ID do Recebedor Pagar.me */}
+            <div className="space-y-2 pt-4 border-t">
+              <Label htmlFor="pagarme_recipient_id">ID do Recebedor Pagar.me (Apenas Fornecedor/Admin)</Label>
+              <Input 
+                id="pagarme_recipient_id" 
+                placeholder="Ex: re_xxxxxxxxxxxxxxxx" 
+                value={formData.pagarme_recipient_id || ''} 
+                onChange={handleChange} 
+              />
+              <p className="text-xs text-gray-500">Necessário para o split de pagamento. Deve ser o ID do Recebedor criado no Pagar.me.</p>
             </div>
 
             <Button 

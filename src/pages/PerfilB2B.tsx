@@ -48,7 +48,8 @@ const PerfilB2B: React.FC = () => {
                   cnpj: null, 
                   telefone: null, 
                   endereco: null,
-                  cep: null, // CORREÇÃO: Adicionando o campo 'cep'
+                  cep: null,
+                  pagarme_recipient_id: null, // CORREÇÃO: Adicionando o campo 'pagarme_recipient_id'
                 }}
                 onProfileUpdated={(newProfile) => {
                   // Força o recarregamento do perfil após a atualização
@@ -111,6 +112,9 @@ const PerfilB2B: React.FC = () => {
                 <p><strong>Telefone:</strong> {b2bProfile.telefone || 'Não informado'}</p>
                 <p><strong>Endereço:</strong> {b2bProfile.endereco || 'Não informado'}</p>
                 <p><strong>CEP:</strong> {b2bProfile.cep || 'Não informado'}</p>
+                {b2bProfile.pagarme_recipient_id && (
+                  <p><strong>ID Recebedor Pagar.me:</strong> <span className="font-mono text-sm bg-gray-100 p-1 rounded">{b2bProfile.pagarme_recipient_id}</span></p>
+                )}
                 <p className="pt-2">
                   <strong className="text-atacado-accent">Tipo de Usuário:</strong> {b2bProfile.role === 'administrador' ? 'Administrador do Sistema' : (isFornecedor ? 'Fornecedor Brás' : 'Lojista Atacado')}
                 </p>
@@ -180,7 +184,7 @@ const PerfilB2B: React.FC = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-3xl font-bold text-atacado-accent">1.200 DZ</p>
+                      <p className="text-3xl font-bold">1.200 DZ</p>
                       <p className="text-sm text-gray-500">Produtos disponíveis</p>
                     </CardContent>
                   </Card>
