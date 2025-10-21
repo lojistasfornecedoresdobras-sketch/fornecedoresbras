@@ -17,6 +17,7 @@ interface ProductCardProps {
   comprimento_cm: number;
   largura_cm: number;
   altura_cm: number;
+  onClick: () => void; // NOVO: Handler para abrir o modal
 }
 
 const ProductCardAtacado: React.FC<ProductCardProps> = ({ 
@@ -30,11 +31,14 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({
   peso_kg,
   comprimento_cm,
   largura_cm,
-  altura_cm
+  altura_cm,
+  onClick // Recebe o handler
 }) => {
   const { addItem } = useCart();
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que o clique no botão abra o modal
+    
     // Por padrão, adicionamos 1 unidade de atacado (1 DZ, 1 PC ou 1 CX)
     addItem({
       id,
@@ -51,7 +55,10 @@ const ProductCardAtacado: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <Card className="w-full bg-white shadow-md hover:shadow-lg transition-shadow">
+    <Card 
+      className="w-full bg-white shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={onClick} // Abre o modal ao clicar no card
+    >
       <CardHeader className="p-0">
         <img 
           src={imageUrl} 

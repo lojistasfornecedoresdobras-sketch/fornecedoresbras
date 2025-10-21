@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { FotoProduto } from '@/types/produto';
+import ProdutoDetalhesModal from '@/components/ProdutoDetalhesModal'; // NOVO
 
 interface Produto {
   id: string;
@@ -32,8 +33,12 @@ const CatalogoAtacado: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedFornecedorId, setSelectedFornecedorId] = useState<string | null>(null); // Novo estado
-  const [sortOrder, setSortOrder] = useState<SortOrder>('created_at_desc'); // Padrão: Mais Recentes
+  const [selectedFornecedorId, setSelectedFornecedorId] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('created_at_desc');
+  
+  // Estado do Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
 
   const fetchProdutos = useCallback(async (term: string, category: string | null, fornecedorId: string | null, order: SortOrder) => {
     setIsLoading(true);
@@ -110,6 +115,16 @@ const CatalogoAtacado: React.FC = () => {
         return price;
     }
   };
+  
+  const handleOpenModal = (productId: string) => {
+    setSelectedProdutoId(productId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProdutoId(null);
+  };
 
   return (
     <div className="min-h-screen bg-atacado-background">
@@ -164,6 +179,7 @@ const CatalogoAtacado: React.FC = () => {
                   comprimento_cm={product.comprimento_cm}
                   largura_cm={product.largura_cm}
                   altura_cm={product.altura_cm}
+                  onClick={() => handleOpenModal(product.id)} // Adiciona o handler
                 />
               );
             })}
@@ -188,6 +204,13 @@ const CatalogoAtacado: React.FC = () => {
         </p>
         <MadeWithDyad />
       </footer>
+      
+      {/* Modal de Detalhes do Produto */}
+      <ProdutoDetalhesModal
+        produtoId={selectedProdutoId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

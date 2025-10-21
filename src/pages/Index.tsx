@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import React, { useEffect, useState } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FotoProduto } from '@/types/produto';
 import PromoBanner from "@/components/PromoBanner";
 
@@ -48,6 +48,7 @@ const calculateUnitPrice = (price: number, unit: 'DZ' | 'PC' | 'CX'): number => 
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categorias, setCategorias] = useState<string[]>([]);
@@ -92,6 +93,11 @@ const Index = () => {
       const uniqueCategories = Array.from(new Set(data.map(item => item.categoria))).slice(0, 4);
       setCategorias(uniqueCategories);
     }
+  };
+  
+  // Handler para redirecionar para o catálogo ao clicar no card na página inicial
+  const handleProductClick = () => {
+    navigate('/catalogo');
   };
 
   return (
@@ -167,6 +173,7 @@ const Index = () => {
                     comprimento_cm={product.comprimento_cm}
                     largura_cm={product.largura_cm}
                     altura_cm={product.altura_cm}
+                    onClick={handleProductClick} // Adiciona o handler
                   />
                 );
               })}
