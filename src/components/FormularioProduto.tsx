@@ -235,6 +235,21 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       }
 
       showSuccess(message);
+      
+      // Se estiver editando, atualiza o estado local para refletir as URLs salvas (placeholders)
+      if (isEditing) {
+        setFormData(prev => ({
+            ...prev,
+            fotos: finalPhotos.map(f => ({
+                id: f.id,
+                url: f.url,
+                ordem: f.ordem,
+                file: undefined,
+            })),
+        }));
+      }
+      
+      // Chama onSuccess para redirecionar (se não for edição, ou se for edição e o usuário quiser sair)
       onSuccess();
       
       if (!isEditing) {
