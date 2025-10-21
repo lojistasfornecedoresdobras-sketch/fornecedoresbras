@@ -90,6 +90,8 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       cep: formData.cep,
       role: roleToUpdate,
     };
+    
+    console.log("Payload de atualização:", updateData); // LOG DE DEBUG
 
     const { data, error } = await supabase
       .from('usuarios')
