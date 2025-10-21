@@ -37,7 +37,28 @@ interface FormularioProdutoProps {
   onSuccess: () => void;
 }
 
-const categorias = ['Roupas', 'Calçados', 'Acessórios', 'Infantil'];
+const categorias = [
+  'Lançamentos do Brás',
+  'Ofertas do Dia',
+  'Brinquedos',
+  'Papelaria',
+  'Halloween',
+  'Enfeites de Natal',
+  'Casa e Decoração',
+  'Malas e Mochilas',
+  'Eletrônicos',
+  'Bolsas no Atacado',
+  'Carteiras Femininas',
+  'Necessaire e Térmica',
+  'Infláveis e Piscinas',
+  'Roupas Femininas',
+  'Infantil',
+  'Masculinos',
+  'Beleza e Cuidado Pessoal',
+  'Bandeiras, Cornetas +',
+  'Mais Vendidos',
+  'Ofertas',
+];
 const unidades = ['DZ', 'PC', 'CX'];
 
 // URL de placeholder garantida (usada apenas como fallback visual)

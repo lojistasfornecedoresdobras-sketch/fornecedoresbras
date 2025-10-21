@@ -13,7 +13,29 @@ interface FiltrosCatalogoProps {
   setSelectedFornecedorId: (id: string | null) => void; // Novo
 }
 
-const categorias = ['Todos', 'Roupas', 'Calçados', 'Acessórios', 'Infantil'];
+const categorias = [
+  'Todos',
+  'Lançamentos do Brás',
+  'Ofertas do Dia',
+  'Brinquedos',
+  'Papelaria',
+  'Halloween',
+  'Enfeites de Natal',
+  'Casa e Decoração',
+  'Malas e Mochilas',
+  'Eletrônicos',
+  'Bolsas no Atacado',
+  'Carteiras Femininas',
+  'Necessaire e Térmica',
+  'Infláveis e Piscinas',
+  'Roupas Femininas',
+  'Infantil',
+  'Masculinos',
+  'Beleza e Cuidado Pessoal',
+  'Bandeiras, Cornetas +',
+  'Mais Vendidos',
+  'Ofertas',
+];
 const sortOptions = [
   { value: 'created_at_desc', label: 'Mais Recentes' },
   { value: 'preco_atacado_asc', label: 'Mais Barato DZ' },
@@ -49,7 +71,7 @@ const FiltrosCatalogo: React.FC<FiltrosCatalogoProps> = ({
             {currentCategoryLabel} <ChevronDown className="w-4 h-4 ml-2" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
+        <DropdownMenuContent align="start" className="max-h-60 overflow-y-auto">
           <DropdownMenuLabel>Filtrar por Categoria</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {categorias.map(c => (
