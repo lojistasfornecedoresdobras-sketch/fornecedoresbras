@@ -40,15 +40,11 @@ const unidades = ['DZ', 'PC', 'CX'];
 
 // Função de simulação de upload para o Supabase Storage
 const simulateUpload = async (file: File, fornecedorId: string): Promise<string> => {
-    // Em um cenário real, você usaria:
-    // const { data, error } = await supabase.storage.from('produtos').upload(...)
+    // Simulação: retorna a URL do placeholder local para garantir que o carregamento funcione.
+    console.log(`Simulando upload de ${file.name} para: ${fornecedorId}`);
     
-    // Simulação: retorna uma URL pública mockada
-    const fileName = `${fornecedorId}/${Date.now()}_${file.name}`;
-    console.log(`Simulando upload de ${file.name} para: ${fileName}`);
-    
-    // Retorna uma URL de placeholder para evitar erros de blob:
-    return `https://dyad-storage-mock.com/produtos/${fileName}`;
+    // Retorna a URL do placeholder local
+    return "/placeholder.svg";
 };
 
 const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEditing, onSuccess }) => {
@@ -153,7 +149,8 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
 
       const uploadedPhotos: FotoProduto[] = [];
       for (const photo of photosToUpload) {
-        const publicUrl = await simulateUpload(photo.file!, b2bProfile.id);
+        // A URL retornada agora é o placeholder
+        const publicUrl = await simulateUpload(photo.file!, b2bProfile.id); 
         uploadedPhotos.push({
           id: `db-${Date.now()}-${Math.random()}`, // Novo ID simulado do DB
           url: publicUrl,
