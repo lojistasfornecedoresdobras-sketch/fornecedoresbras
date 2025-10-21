@@ -153,6 +153,16 @@ const ProdutoDetalhesModal: React.FC<ProdutoDetalhesModalProps> = ({ produtoId, 
 
               <Separator />
 
+              {/* Descrição */}
+              {produto.descricao && (
+                <div className="space-y-2">
+                    <h3 className="font-semibold text-atacado-primary">Descrição</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{produto.descricao}</p>
+                </div>
+              )}
+              
+              <Separator />
+
               {/* Preços */}
               <div className="space-y-1">
                 <p className="text-4xl font-extrabold text-atacado-accent">

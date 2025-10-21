@@ -20,6 +20,7 @@ interface ProdutoFormData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
+  descricao: string; // NOVO CAMPO
   
   // Novos campos de frete
   peso_kg: string;
@@ -74,6 +75,7 @@ const EditarProduto: React.FC = () => {
     const loadedData: ProdutoFormData = {
       id: data.id,
       nome: data.nome || '',
+      descricao: data.descricao || '', // NOVO
       preco_atacado: data.preco_atacado?.toString() || '',
       preco_minimo_pequeno: data.preco_minimo_pequeno?.toString() || '',
       quantidade_estoque: data.quantidade_estoque?.toString() || '',

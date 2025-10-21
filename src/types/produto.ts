@@ -10,6 +10,7 @@ export interface FotoProduto {
 export interface Produto {
   id: string;
   nome: string;
+  descricao: string; // NOVO CAMPO
   preco_atacado: number;
   preco_minimo_pequeno: number;
   quantidade_estoque: number;

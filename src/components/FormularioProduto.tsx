@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from '@/hooks/use-auth';
 import { FotoProduto } from '@/types/produto';
+import { Textarea } from '@/components/ui/textarea'; // Importando Textarea
 
 interface ProdutoData {
   id?: string; // Presente apenas na edição
@@ -18,6 +19,7 @@ interface ProdutoData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
+  descricao: string; // NOVO CAMPO
   
   // Novos campos de frete
   peso_kg: string;
@@ -79,6 +81,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     unidade_medida: '',
     categoria: '',
     minimo_compra: '6',
+    descricao: '', // NOVO
     peso_kg: '',
     comprimento_cm: '',
     largura_cm: '',
@@ -95,6 +98,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         largura_cm: initialData.largura_cm?.toString() || '',
         altura_cm: initialData.altura_cm?.toString() || '',
         fotos: initialData.fotos || [],
+        descricao: (initialData as any).descricao || '', // Garante que a descrição seja carregada
       });
     }
   }, [initialData]);
@@ -176,6 +180,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         categoria: formData.categoria,
         minimo_compra: parseInt(formData.minimo_compra),
         fornecedor_id: b2bProfile.id,
+        descricao: formData.descricao, // NOVO CAMPO
         
         peso_kg: parseFloat(formData.peso_kg) || 0,
         comprimento_cm: parseFloat(formData.comprimento_cm) || 0,
@@ -285,6 +290,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
           unidade_medida: '',
           categoria: '',
           minimo_compra: '6',
+          descricao: '', // NOVO
           peso_kg: '',
           comprimento_cm: '',
           largura_cm: '',
@@ -317,6 +323,18 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       <div className="space-y-2">
         <Label htmlFor="nome">Nome do Produto</Label>
         <Input id="nome" placeholder="Ex: Camiseta Polo Algodão" required value={formData.nome} onChange={handleChange} />
+      </div>
+      
+      {/* CAMPO DE DESCRIÇÃO */}
+      <div className="space-y-2">
+        <Label htmlFor="descricao">Descrição Detalhada do Produto</Label>
+        <Textarea 
+          id="descricao" 
+          placeholder="Detalhes sobre material, tamanhos, cores disponíveis e informações de atacado." 
+          value={formData.descricao} 
+          onChange={handleChange} 
+          rows={4}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
