@@ -177,11 +177,22 @@ serve(async (req) => {
     
     // Repasse ao fornecedor = Valor dos Produtos - Comissão + Valor do Frete
     const splitFornecedor = valorProdutos - comissaoPlataforma + valorFrete;
-    const splitPlataforma = comissaoPlataforma; // CORRIGIDO: Usando comissaoPlataforma
+    const splitPlataforma = comissaoPlataforma; // Comissão da plataforma
 
     // 4. Montar Payload da Transação Pagar.me (PIX)
-    const amountInCents = Math.round(totalComFrete * 100);
+    let amountInCents = Math.round(totalComFrete * 100);
+    let splitFornecedorInCents = Math.round(splitFornecedor * 100);
+    let splitPlataformaInCents = Math.round(splitPlataforma * 100);
     
+    // Verificação de sanidade: a soma dos splits deve ser igual ao total
+    if (splitFornecedorInCents + splitPlataformaInCents !== amountInCents) {
+        console.error(`Split mismatch: ${splitFornecedorInCents} + ${splitPlataformaInCents} !== ${amountInCents}`);
+        // Ajusta o split da plataforma para fechar a conta (pode ser necessário devido a arredondamentos)
+        const diff = amountInCents - (splitFornecedorInCents + splitPlataformaInCents);
+        splitPlataformaInCents += diff;
+        console.warn(`Split ajustado. Nova plataforma split: ${splitPlataformaInCents}`);
+    }
+
     const transactionPayload = {
         // Dados da transação
         amount: amountInCents,
@@ -196,13 +207,13 @@ serve(async (req) => {
         split_rules: [
             { 
                 recipient_id: fornecedorRecipientId, 
-                amount: Math.round(splitFornecedor * 100),
+                amount: splitFornecedorInCents,
                 liable: true, // O fornecedor é responsável por chargebacks/fraudes
                 charge_processing_fee: false, // A plataforma paga a taxa de processamento
             },
             { 
                 recipient_id: PLATFORM_RECIPIENT_ID, 
-                amount: Math.round(splitPlataforma * 100),
+                amount: splitPlataformaInCents,
                 liable: false,
                 charge_processing_fee: true, // A plataforma absorve a taxa de processamento
             },
@@ -222,6 +233,8 @@ serve(async (req) => {
         // Configuração específica do Pix
         pix_expiration_date: new Date(Date.now() + 3600000).toISOString(), // 1 hora de validade
     };
+    
+    console.log("Pagar.me Payload:", transactionPayload); // Loga o payload antes de enviar
 
     // 5. Criar Transação Real no Pagar.me
     const pagarmeResponse = await createPagarmeTransaction(transactionPayload);
