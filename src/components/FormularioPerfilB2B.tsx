@@ -24,8 +24,9 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     cnpj: initialProfile.cnpj || '',
     telefone: initialProfile.telefone || '',
     endereco: initialProfile.endereco || '',
-    cep: initialProfile.cep || '', // NOVO CAMPO
+    cep: initialProfile.cep || '',
     role: initialProfile.role || '',
+    pagarme_recipient_id: initialProfile.pagarme_recipient_id || '', // NOVO
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,8 +37,9 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       cnpj: initialProfile.cnpj || '',
       telefone: initialProfile.telefone || '',
       endereco: initialProfile.endereco || '',
-      cep: initialProfile.cep || '', // NOVO CAMPO
+      cep: initialProfile.cep || '',
       role: initialProfile.role || '',
+      pagarme_recipient_id: initialProfile.pagarme_recipient_id || '', // NOVO
     });
   }, [initialProfile]);
 
@@ -46,11 +48,8 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     
     let processedValue = value;
     if (id === 'cep') {
-      // Remove caracteres não numéricos e limita a 8 dígitos
       processedValue = value.replace(/\D/g, '').substring(0, 8);
     }
-    // Não aplicamos formatação ao CNPJ/CPF aqui, apenas removemos caracteres não numéricos se necessário.
-    // Se o usuário digitar pontos/hífens, o Supabase deve aceitar se a coluna for TEXT/VARCHAR.
 
     setFormData(prev => ({ ...prev, [id]: processedValue }));
   };
@@ -74,6 +73,12 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       showError("O campo Tipo de Usuário é obrigatório.");
       return;
     }
+    
+    // Validação específica para Fornecedor
+    if (formData.role === 'fornecedor' && !formData.pagarme_recipient_id) {
+        showError("Fornecedores devem informar o ID do Recebedor Pagar.me.");
+        return;
+    }
 
     setIsSaving(true);
 
@@ -86,14 +91,15 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     const updateData = {
       nome_fantasia: toNullIfEmpty(formData.nome_fantasia),
       razao_social: toNullIfEmpty(formData.razao_social),
-      cnpj: formData.cnpj, // Enviando o valor como está
+      cnpj: formData.cnpj,
       telefone: toNullIfEmpty(formData.telefone),
       endereco: toNullIfEmpty(formData.endereco),
       cep: formData.cep,
       role: roleToUpdate,
+      pagarme_recipient_id: toNullIfEmpty(formData.pagarme_recipient_id), // NOVO
     };
     
-    console.log("Payload de atualização:", updateData); // LOG DE DEBUG
+    console.log("Payload de atualização:", updateData);
 
     const { data, error } = await supabase
       .from('usuarios')
@@ -103,7 +109,6 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       .single();
 
     if (error) {
-      // Captura e exibe a mensagem de erro exata do Supabase/PostgreSQL
       showError("Erro ao atualizar perfil: " + error.message);
       console.error("Erro detalhado do Supabase:", error);
     } else {
@@ -115,6 +120,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
   // Se o usuário for administrador, ele não pode mudar sua própria role aqui.
   const isRoleFieldDisabled = initialProfile.role === 'administrador';
+  const isFornecedor = formData.role === 'fornecedor';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -186,6 +192,20 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
         </div>
       </div>
       
+      {isFornecedor && (
+        <div className="space-y-2 pt-4 border-t">
+          <Label htmlFor="pagarme_recipient_id">ID do Recebedor Pagar.me</Label>
+          <Input 
+            id="pagarme_recipient_id" 
+            placeholder="Ex: re_xxxxxxxxxxxxxxxx" 
+            value={formData.pagarme_recipient_id} 
+            onChange={handleChange} 
+            required={isFornecedor}
+          />
+          <p className="text-xs text-gray-500">Necessário para o split de pagamento. Use um valor MOCK se estiver em desenvolvimento (ex: re_MOCK_FORNECEDOR).</p>
+        </div>
+      )}
+
       <p className="text-sm text-gray-500">
         * Se estiver usando CPF, preencha o campo "Nome Fantasia" com seu nome completo.
       </p>
