@@ -24,7 +24,7 @@ const HeroCarrossel: React.FC = () => {
             <CarouselItem key={index}>
               <div className="p-1">
                 <Card className="bg-atacado-primary text-white border-none">
-                  <CardContent className="flex flex-col items-center justify-center p-6 md:p-12 aspect-video">
+                  <CardContent className="flex flex-col items-center justify-center p-6 md:p-8 lg:p-10 aspect-[16/7] md:aspect-[16/6]">
                     <span className="text-lg md:text-2xl font-bold mb-2 text-center">
                       {item.title}
                     </span>
