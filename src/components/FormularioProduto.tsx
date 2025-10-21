@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Loader2, Save } from 'lucide-react';
+import { Upload, Loader2, Save, Trash2, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from '@/hooks/use-auth';
+import { FotoProduto } from '@/types/produto'; // Importando a nova tipagem
 
 interface ProdutoData {
   id?: string; // Presente apenas na edição
@@ -17,12 +18,16 @@ interface ProdutoData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
-  foto_url: string;
+  // Removido foto_url
+  
   // Novos campos de frete
   peso_kg: string;
   comprimento_cm: string;
   largura_cm: string;
   altura_cm: string;
+
+  // Novo estado para fotos
+  fotos: FotoProduto[];
 }
 
 interface FormularioProdutoProps {
@@ -45,12 +50,12 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     unidade_medida: '',
     categoria: '',
     minimo_compra: '6',
-    foto_url: '/placeholder.svg',
     // Valores iniciais para frete
     peso_kg: '',
     comprimento_cm: '',
     largura_cm: '',
     altura_cm: '',
+    fotos: [], // Inicializa com array vazio
   });
 
   useEffect(() => {
@@ -62,6 +67,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         comprimento_cm: initialData.comprimento_cm || '',
         largura_cm: initialData.largura_cm || '',
         altura_cm: initialData.altura_cm || '',
+        fotos: initialData.fotos || [],
       });
     }
   }, [initialData]);
@@ -71,8 +77,33 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleSelectChange = (id: keyof ProdutoData, value: string) => {
+  const handleSelectChange = (id: keyof Omit<ProdutoData, 'fotos'>, value: string) => {
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  // Simulação de upload de foto
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (formData.fotos.length >= 5) {
+      showError("Limite de 5 fotos atingido.");
+      return;
+    }
+    if (e.target.files && e.target.files.length > 0) {
+      // Mock: Cria uma URL temporária e um ID mock
+      const newPhoto: FotoProduto = {
+        id: `mock-${Date.now()}`,
+        url: URL.createObjectURL(e.target.files[0]),
+        ordem: formData.fotos.length,
+      };
+      setFormData(prev => ({ ...prev, fotos: [...prev.fotos, newPhoto] }));
+      showSuccess("Foto adicionada (Mock).");
+    }
+  };
+
+  const handleRemovePhoto = (photoId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      fotos: prev.fotos.filter(f => f.id !== photoId).map((f, index) => ({ ...f, ordem: index })),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,8 +122,10 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       unidade_medida: formData.unidade_medida,
       categoria: formData.categoria,
       minimo_compra: parseInt(formData.minimo_compra),
-      foto_url: formData.foto_url,
-      // Novos campos de frete
+      // Removido foto_url
+      fornecedor_id: b2bProfile.id, // Adicionado para garantir que está no payload de insert
+      
+      // Campos de frete
       peso_kg: parseFloat(formData.peso_kg) || 0,
       comprimento_cm: parseFloat(formData.comprimento_cm) || 0,
       largura_cm: parseFloat(formData.largura_cm) || 0,
@@ -101,48 +134,92 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
 
     let error;
     let message;
+    let produtoId = formData.id;
 
-    if (isEditing && formData.id) {
+    if (isEditing && produtoId) {
       // Lógica de Edição
       const result = await supabase
         .from('produtos')
         .update(produtoPayload)
-        .eq('id', formData.id);
+        .eq('id', produtoId);
       error = result.error;
       message = "Produto atualizado com sucesso!";
     } else {
       // Lógica de Cadastro
       const result = await supabase
         .from('produtos')
-        .insert([{ ...produtoPayload, fornecedor_id: b2bProfile.id }]);
+        .insert([produtoPayload])
+        .select('id')
+        .single();
       error = result.error;
       message = "Produto cadastrado com sucesso!";
+      if (result.data) {
+        produtoId = result.data.id;
+      }
     }
 
     if (error) {
       showError(`Erro ao ${isEditing ? 'atualizar' : 'cadastrar'} produto: ${error.message}`);
       console.error(error);
-    } else {
-      showSuccess(message);
-      onSuccess();
-      
-      // Limpar formulário após cadastro
-      if (!isEditing) {
-        setFormData({
-          nome: '',
-          preco_atacado: '',
-          preco_minimo_pequeno: '',
-          quantidade_estoque: '',
-          unidade_medida: '',
-          categoria: '',
-          minimo_compra: '6',
-          foto_url: '/placeholder.svg',
-          peso_kg: '',
-          comprimento_cm: '',
-          largura_cm: '',
-          altura_cm: '',
-        });
+      setIsLoading(false);
+      return;
+    }
+    
+    // 2. Gerenciar Fotos (Inserir/Atualizar/Deletar)
+    if (produtoId) {
+      // 2a. Deletar fotos antigas (simplesmente deletamos todas e reinserimos)
+      if (isEditing) {
+        const { error: deleteError } = await supabase
+          .from('fotos_produto')
+          .delete()
+          .eq('produto_id', produtoId);
+        
+        if (deleteError) {
+          showError("Erro ao limpar fotos antigas: " + deleteError.message);
+          console.error(deleteError);
+          // Continuamos, mas com aviso
+        }
       }
+
+      // 2b. Inserir novas fotos
+      if (formData.fotos.length > 0) {
+        const fotosPayload = formData.fotos.map(f => ({
+          produto_id: produtoId,
+          url: f.url,
+          ordem: f.ordem,
+        }));
+
+        const { error: insertPhotosError } = await supabase
+          .from('fotos_produto')
+          .insert(fotosPayload);
+
+        if (insertPhotosError) {
+          showError("Erro ao salvar fotos: " + insertPhotosError.message);
+          console.error(insertPhotosError);
+          // Continuamos, mas com aviso
+        }
+      }
+    }
+
+    showSuccess(message);
+    onSuccess();
+    
+    // Limpar formulário após cadastro
+    if (!isEditing) {
+      setFormData({
+        nome: '',
+        preco_atacado: '',
+        preco_minimo_pequeno: '',
+        quantidade_estoque: '',
+        unidade_medida: '',
+        categoria: '',
+        minimo_compra: '6',
+        peso_kg: '',
+        comprimento_cm: '',
+        largura_cm: '',
+        altura_cm: '',
+        fotos: [],
+      });
     }
     setIsLoading(false);
   };
@@ -199,7 +276,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         </div>
       </div>
       
-      {/* NOVOS CAMPOS DE FRETE */}
+      {/* CAMPOS DE FRETE */}
       <h3 className="text-lg font-semibold text-atacado-primary pt-4 border-t">Dimensões e Peso (Por Unidade)</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="space-y-2">
@@ -220,19 +297,46 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="foto">Foto do Produto (Mock)</Label>
+      {/* NOVO CAMPO DE FOTOS */}
+      <h3 className="text-lg font-semibold text-atacado-primary pt-4 border-t">Fotos do Produto (Máx. 5)</h3>
+      <div className="space-y-3">
         <div className="flex items-center justify-center w-full">
-          <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-atacado-primary/50">
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Upload className="w-6 h-6 mb-3 text-atacado-primary" />
-              <p className="mb-2 text-sm text-gray-500">
-                <span className="font-semibold">Clique para upload</span> ou arraste e solte
+          <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${formData.fotos.length >= 5 ? 'bg-gray-200 border-gray-400 cursor-not-allowed' : 'bg-gray-50 hover:bg-gray-100 border-atacado-primary/50'}`}>
+            <div className="flex flex-col items-center justify-center">
+              <Upload className="w-5 h-5 mb-1 text-atacado-primary" />
+              <p className="text-sm text-gray-500">
+                Clique para upload ({formData.fotos.length}/5)
               </p>
-              <p className="text-xs text-gray-500">PNG, JPG (MAX. 800x400px)</p>
             </div>
-            <input id="dropzone-file" type="file" className="hidden" />
+            <input 
+              id="dropzone-file" 
+              type="file" 
+              className="hidden" 
+              onChange={handlePhotoUpload}
+              disabled={formData.fotos.length >= 5}
+            />
           </label>
+        </div>
+        
+        {/* Pré-visualização das Fotos */}
+        <div className="flex flex-wrap gap-3">
+          {formData.fotos.map((foto) => (
+            <div key={foto.id} className="relative w-20 h-20 border rounded-lg overflow-hidden group">
+              <img src={foto.url} alt={`Foto ${foto.ordem + 1}`} className="w-full h-full object-cover" />
+              <Button 
+                type="button"
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-0 right-0 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleRemovePhoto(foto.id)}
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+          {formData.fotos.length === 0 && (
+            <p className="text-sm text-gray-500">Nenhuma foto adicionada.</p>
+          )}
         </div>
       </div>
 

@@ -10,13 +10,13 @@ import React, { useEffect, useState, useMemo } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
+import { FotoProduto } from '@/types/produto';
 
 interface Produto {
   id: string;
   nome: string;
   preco_atacado: number;
   unidade_medida: 'DZ' | 'PC' | 'CX';
-  foto_url: string;
   fornecedor_id: string;
   categoria: string;
   // Campos de Frete
@@ -24,6 +24,8 @@ interface Produto {
   comprimento_cm: number;
   largura_cm: number;
   altura_cm: number;
+  // Novo campo de relacionamento
+  fotos_produto: FotoProduto[];
 }
 
 const mockBeneficios = [
@@ -56,10 +58,14 @@ const Index = () => {
 
   const fetchProdutos = async () => {
     setIsLoading(true);
-    // Busca os 4 produtos mais recentes, incluindo os campos de frete
+    // Busca os 4 produtos mais recentes, incluindo os campos de frete e as fotos
     const { data, error } = await supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria, peso_kg, comprimento_cm, largura_cm, altura_cm')
+      .select(`
+        id, nome, preco_atacado, unidade_medida, fornecedor_id, categoria, 
+        peso_kg, comprimento_cm, largura_cm, altura_cm,
+        fotos_produto (url, ordem)
+      `)
       .order('created_at', { ascending: false })
       .limit(4);
 
@@ -141,22 +147,25 @@ const Index = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {produtos.map((product) => (
-                <ProductCardAtacado 
-                  key={product.id} 
-                  id={product.id}
-                  name={product.nome} 
-                  priceDz={product.preco_atacado} 
-                  unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
-                  unit={product.unidade_medida} 
-                  imageUrl={product.foto_url || "/placeholder.svg"} 
-                  fornecedorId={product.fornecedor_id}
-                  peso_kg={product.peso_kg}
-                  comprimento_cm={product.comprimento_cm}
-                  largura_cm={product.largura_cm}
-                  altura_cm={product.altura_cm}
-                />
-              ))}
+              {produtos.map((product) => {
+                const firstPhotoUrl = product.fotos_produto?.[0]?.url || "/placeholder.svg";
+                return (
+                  <ProductCardAtacado 
+                    key={product.id} 
+                    id={product.id}
+                    name={product.nome} 
+                    priceDz={product.preco_atacado} 
+                    unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
+                    unit={product.unidade_medida} 
+                    imageUrl={firstPhotoUrl} 
+                    fornecedorId={product.fornecedor_id}
+                    peso_kg={product.peso_kg}
+                    comprimento_cm={product.comprimento_cm}
+                    largura_cm={product.largura_cm}
+                    altura_cm={product.altura_cm}
+                  />
+                );
+              })}
             </div>
           )}
         </section>

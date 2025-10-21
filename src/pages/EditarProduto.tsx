@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import FormularioProduto from '@/components/FormularioProduto';
+import { FotoProduto } from '@/types/produto';
 
 interface ProdutoFormData {
   id: string;
@@ -19,12 +20,16 @@ interface ProdutoFormData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
-  foto_url: string;
+  // Removido foto_url
+  
   // Novos campos de frete
   peso_kg: string;
   comprimento_cm: string;
   largura_cm: string;
   altura_cm: string;
+
+  // Novo campo de fotos
+  fotos: FotoProduto[];
 }
 
 const EditarProduto: React.FC = () => {
@@ -37,9 +42,14 @@ const EditarProduto: React.FC = () => {
 
   const fetchProduct = useCallback(async (productId: string) => {
     setIsLoading(true);
+    
+    // Busca o produto e as fotos relacionadas
     const { data, error } = await supabase
       .from('produtos')
-      .select('*, peso_kg, comprimento_cm, largura_cm, altura_cm') // Incluindo novos campos
+      .select(`
+        *, 
+        fotos_produto (id, url, ordem)
+      `)
       .eq('id', productId)
       .single();
 
@@ -59,6 +69,9 @@ const EditarProduto: React.FC = () => {
       return;
     }
 
+    // Ordena as fotos pela ordem
+    const fotosOrdenadas = (data.fotos_produto as FotoProduto[] || []).sort((a, b) => a.ordem - b.ordem);
+
     setInitialData({
       id: data.id,
       nome: data.nome || '',
@@ -68,12 +81,13 @@ const EditarProduto: React.FC = () => {
       unidade_medida: data.unidade_medida || '',
       categoria: data.categoria || '',
       minimo_compra: data.minimo_compra?.toString() || '12',
-      foto_url: data.foto_url || '/placeholder.svg',
-      // Mapeamento dos novos campos
+      // Mapeamento dos campos de frete
       peso_kg: data.peso_kg?.toString() || '',
       comprimento_cm: data.comprimento_cm?.toString() || '',
       largura_cm: data.largura_cm?.toString() || '',
       altura_cm: data.altura_cm?.toString() || '',
+      // Mapeamento das fotos
+      fotos: fotosOrdenadas,
     });
     setIsLoading(false);
   }, [b2bProfile?.id, b2bProfile?.role, navigate]);

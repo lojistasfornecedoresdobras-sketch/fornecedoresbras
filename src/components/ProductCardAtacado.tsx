@@ -10,7 +10,7 @@ interface ProductCardProps {
   priceDz: number;
   unitPrice: number;
   unit: 'DZ' | 'PC' | 'CX';
-  imageUrl: string;
+  imageUrl: string; // Agora é a URL da primeira foto
   fornecedorId: string;
   // Campos de Frete
   peso_kg: number;

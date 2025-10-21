@@ -7,13 +7,13 @@ import { Truck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
+import { FotoProduto } from '@/types/produto';
 
 interface Produto {
   id: string;
   nome: string;
   preco_atacado: number;
   unidade_medida: 'DZ' | 'PC' | 'CX';
-  foto_url: string;
   fornecedor_id: string; // Adicionado
   categoria: string; // Adicionado para filtro
   // Campos de Frete
@@ -21,6 +21,8 @@ interface Produto {
   comprimento_cm: number;
   largura_cm: number;
   altura_cm: number;
+  // Novo campo de relacionamento
+  fotos_produto: FotoProduto[];
 }
 
 type SortOrder = 'created_at_desc' | 'preco_atacado_asc' | 'preco_atacado_desc';
@@ -38,7 +40,11 @@ const CatalogoAtacado: React.FC = () => {
     
     let query = supabase
       .from('produtos')
-      .select('id, nome, preco_atacado, unidade_medida, foto_url, fornecedor_id, categoria, peso_kg, comprimento_cm, largura_cm, altura_cm');
+      .select(`
+        id, nome, preco_atacado, unidade_medida, fornecedor_id, categoria, 
+        peso_kg, comprimento_cm, largura_cm, altura_cm,
+        fotos_produto (url, ordem)
+      `);
 
     // 1. Filtro de Busca (Nome)
     if (term) {
@@ -127,7 +133,7 @@ const CatalogoAtacado: React.FC = () => {
             Filtros ativos: 
             {searchTerm && <span className="font-semibold text-atacado-accent ml-1">Busca: "{searchTerm}"</span>}
             {selectedCategory && selectedCategory !== 'Todos' && <span className="font-semibold text-atacado-accent ml-1">Categoria: {selectedCategory}</span>}
-            {selectedFornecedorId && <span className="font-semibold text-atacado-accent ml-1">Fornecedor: {selectedFornecedorId.substring(0, 8)}...</span>}
+            {selectedFornecedorId && <span className="font-semibold text-atacado-accent ml-1">Fornecedor: {selectedFornecedorId.substring(0, 0)}...</span>}
           </p>
         )}
 
@@ -142,22 +148,25 @@ const CatalogoAtacado: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {produtos.map((product) => (
-              <ProductCardAtacado 
-                key={product.id} 
-                id={product.id}
-                name={product.nome} 
-                priceDz={product.preco_atacado} 
-                unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
-                unit={product.unidade_medida} 
-                imageUrl={product.foto_url || "/placeholder.svg"} 
-                fornecedorId={product.fornecedor_id}
-                peso_kg={product.peso_kg}
-                comprimento_cm={product.comprimento_cm}
-                largura_cm={product.largura_cm}
-                altura_cm={product.altura_cm}
-              />
-            ))}
+            {produtos.map((product) => {
+              const firstPhotoUrl = product.fotos_produto?.[0]?.url || "/placeholder.svg";
+              return (
+                <ProductCardAtacado 
+                  key={product.id} 
+                  id={product.id}
+                  name={product.nome} 
+                  priceDz={product.preco_atacado} 
+                  unitPrice={calculateUnitPrice(product.preco_atacado, product.unidade_medida)}
+                  unit={product.unidade_medida} 
+                  imageUrl={firstPhotoUrl} 
+                  fornecedorId={product.fornecedor_id}
+                  peso_kg={product.peso_kg}
+                  comprimento_cm={product.comprimento_cm}
+                  largura_cm={product.largura_cm}
+                  altura_cm={product.altura_cm}
+                />
+              );
+            })}
           </div>
         )}
 
