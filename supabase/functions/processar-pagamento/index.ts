@@ -17,13 +17,21 @@ const PAGARME_API_URL = 'https://api.pagar.me/1/transactions';
 // ID MOCK do Recebedor da Plataforma (Admin)
 const PLATFORM_RECIPIENT_ID = 're_PLATFORM_MOCK_ID';
 
+// Verifica se a Service Role Key está disponível
+// @ts-ignore
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+// @ts-ignore
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("FATAL: SUPABASE_SERVICE_ROLE_KEY is missing.");
+}
+
 // Cliente Supabase com Service Role Key (para operações administrativas, como buscar a taxa de comissão e dados do fornecedor)
 // @ts-ignore
 const adminSupabase = createClient(
-    // @ts-ignore
-    Deno.env.get('SUPABASE_URL') ?? '',
-    // @ts-ignore
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY
 )
 
 // Função para criar a transação real no Pagar.me
@@ -62,6 +70,14 @@ async function createPagarmeTransaction(transactionData: any) {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+  
+  // Se a Service Role Key estiver faltando, retornamos um erro 500 imediatamente
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+      return new Response(JSON.stringify({ error: 'Internal Server Error: Missing Service Role Key configuration.' }), { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
   }
 
   // 1. Autenticação (Obrigatória para garantir que o usuário está logado)
@@ -126,7 +142,7 @@ serve(async (req) => {
       .select('taxa')
       .eq('ativo', true)
       .order('data_definicao', { ascending: false })
-      .limit(1); // Usamos limit(1) em vez de single() para evitar erro se a tabela estiver vazia
+      .limit(1); 
 
     if (taxaError) {
         console.error('Error fetching commission rate:', taxaError);
@@ -139,7 +155,7 @@ serve(async (req) => {
         .from('usuarios')
         .select('pagarme_recipient_id')
         .eq('id', pedido.fornecedor_id)
-        .limit(1); // Usamos limit(1) em vez de single()
+        .limit(1); 
 
     if (fornecedorError) {
         console.error('Error fetching supplier recipient ID:', fornecedorError);
@@ -161,7 +177,7 @@ serve(async (req) => {
     
     // Repasse ao fornecedor = Valor dos Produtos - Comissão + Valor do Frete
     const splitFornecedor = valorProdutos - comissaoPlataforma + valorFrete;
-    const splitPlataforma = comissaoPlataforma; 
+    const splitPlataforma = comissaoPlataforma; // CORRIGIDO: Usando comissaoPlataforma
 
     // 4. Montar Payload da Transação Pagar.me (PIX)
     const amountInCents = Math.round(totalComFrete * 100);
