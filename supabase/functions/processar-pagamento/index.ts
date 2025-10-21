@@ -126,25 +126,28 @@ serve(async (req) => {
       .select('taxa')
       .eq('ativo', true)
       .order('data_definicao', { ascending: false })
-      .limit(1);
+      .limit(1); // Usamos limit(1) em vez de single() para evitar erro se a tabela estiver vazia
 
     if (taxaError) {
         console.error('Error fetching commission rate:', taxaError);
-        // Se houver erro de DB, usamos 0% e logamos o erro.
     }
     
     const taxaComissao = taxas?.[0]?.taxa || 0; // Usa 0% se não houver taxa definida ou se houver erro.
 
     // 2b. Buscar ID do Recebedor do Fornecedor (Usando adminSupabase para ignorar RLS)
-    const { data: fornecedorProfile, error: fornecedorError } = await adminSupabase
+    const { data: fornecedorData, error: fornecedorError } = await adminSupabase
         .from('usuarios')
         .select('pagarme_recipient_id')
         .eq('id', pedido.fornecedor_id)
-        .single();
+        .limit(1); // Usamos limit(1) em vez de single()
 
-    let fornecedorRecipientId = fornecedorProfile?.pagarme_recipient_id;
+    if (fornecedorError) {
+        console.error('Error fetching supplier recipient ID:', fornecedorError);
+    }
 
-    if (fornecedorError || !fornecedorRecipientId) {
+    let fornecedorRecipientId = fornecedorData?.[0]?.pagarme_recipient_id;
+
+    if (!fornecedorRecipientId) {
         console.warn('Fornecedor Recipient ID not found. Using MOCK ID.');
         // Fallback MOCK para desenvolvimento
         fornecedorRecipientId = 're_MOCK_FORNECEDOR'; 
