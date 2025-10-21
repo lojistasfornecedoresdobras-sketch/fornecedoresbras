@@ -81,22 +81,31 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  // Simulação de upload de foto
+  // Manipulador de upload de foto atualizado para múltiplos arquivos
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (formData.fotos.length >= 5) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentCount = formData.fotos.length;
+    const filesArray = Array.from(files);
+    const filesToAdd = filesArray.slice(0, 5 - currentCount);
+
+    if (filesToAdd.length === 0) {
       showError("Limite de 5 fotos atingido.");
       return;
     }
-    if (e.target.files && e.target.files.length > 0) {
-      // Mock: Cria uma URL temporária e um ID mock
-      const newPhoto: FotoProduto = {
-        id: `mock-${Date.now()}`,
-        url: URL.createObjectURL(e.target.files[0]),
-        ordem: formData.fotos.length,
-      };
-      setFormData(prev => ({ ...prev, fotos: [...prev.fotos, newPhoto] }));
-      showSuccess("Foto adicionada (Mock).");
-    }
+
+    const newPhotos: FotoProduto[] = filesToAdd.map((file, index) => ({
+      id: `mock-${Date.now()}-${index}`,
+      url: URL.createObjectURL(file),
+      ordem: currentCount + index,
+    }));
+
+    setFormData(prev => ({ ...prev, fotos: [...prev.fotos, ...newPhotos] }));
+    showSuccess(`${newPhotos.length} foto(s) adicionada(s) (Mock).`);
+    
+    // Limpa o valor do input para permitir o upload do mesmo arquivo novamente
+    e.target.value = '';
   };
 
   const handleRemovePhoto = (photoId: string) => {
@@ -314,6 +323,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
               className="hidden" 
               onChange={handlePhotoUpload}
               disabled={formData.fotos.length >= 5}
+              multiple // Permite múltiplos arquivos
             />
           </label>
         </div>
