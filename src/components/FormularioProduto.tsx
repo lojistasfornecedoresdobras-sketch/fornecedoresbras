@@ -305,7 +305,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
             <div className="flex flex-col items-center justify-center">
               <Upload className="w-5 h-5 mb-1 text-atacado-primary" />
               <p className="text-sm text-gray-500">
-                Clique para upload ({formData.fotos.length}/5)
+                Clique para upload ({formData.fotos.length}/5). <span className="font-semibold text-red-500">Recomendado: 1000x1000px.</span>
               </p>
             </div>
             <input 
