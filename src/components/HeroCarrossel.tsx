@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 const carouselItems = [
-  { title: "🔥 ATACADO BRÁS - MÍNIMO 1 DUZIA!", description: "Camiseta DZ R$120" },
+  { title: "🔥 ATACADO BRÁS - MÍNIMO 6 UNIDADES!", description: "Mescle produtos do mesmo fornecedor." },
   { title: "🏆 TOP VENDAS", description: "Calça CX R$450" },
   { title: "🚚 ENTREGA RÁPIDA", description: "Frete Volumétrico Melhor Envio" },
 ];

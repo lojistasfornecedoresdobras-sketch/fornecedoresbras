@@ -31,7 +31,7 @@ interface Produto {
 
 const mockBeneficios = [
   { icon: DollarSign, title: "Preços de Atacado", description: "Margens de lucro maximizadas comprando em dúzias ou caixas." },
-  { icon: Package, title: "Compra Mínima Flexível", description: "Comece com apenas 6 unidades por produto." },
+  { icon: Package, title: "Compra Mínima Flexível", description: "Comece com apenas 6 unidades totais por fornecedor, podendo mesclar produtos." },
   { icon: Truck, title: "Entrega Rápida", description: "Logística otimizada para todo o Brasil via Melhor Envio." },
 ];
 
