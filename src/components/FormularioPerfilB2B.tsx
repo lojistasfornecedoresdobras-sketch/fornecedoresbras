@@ -7,7 +7,6 @@ import { Loader2, Save } from 'lucide-react';
 import { B2BUser, UserRole } from '@/types/b2b';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from '@/hooks/use-auth';
 
 interface FormularioPerfilB2BProps {
   initialProfile: B2BUser;
@@ -19,7 +18,6 @@ interface FormularioPerfilB2BProps {
 const selectableRoles: UserRole[] = ['lojista', 'fornecedor'];
 
 const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfile, onProfileUpdated }) => {
-  const { b2bProfile } = useAuth();
   const [formData, setFormData] = useState({
     nome_fantasia: initialProfile.nome_fantasia || '',
     razao_social: initialProfile.razao_social || '',
@@ -50,9 +48,6 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     if (id === 'cep') {
       // Remove caracteres não numéricos e limita a 8 dígitos
       processedValue = value.replace(/\D/g, '').substring(0, 8);
-    } else if (id === 'cnpj') {
-      // Permite apenas números para CPF/CNPJ
-      processedValue = value.replace(/\D/g, '');
     }
 
     setFormData(prev => ({ ...prev, [id]: processedValue }));
@@ -64,35 +59,18 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!b2bProfile?.id) return;
-    
-    const cleanedCnpj = formData.cnpj.replace(/\D/g, '');
-    const isCnpj = cleanedCnpj.length > 11; // CNPJ tem 14 dígitos, CPF tem 11
-
-    // Validação: Se for CNPJ, nome fantasia é obrigatório
-    if (isCnpj && !formData.nome_fantasia.trim()) {
-      showError("Para CNPJ, o Nome Fantasia é obrigatório.");
-      return;
-    }
-    
-    // Validação: Razão Social é sempre obrigatória
-    if (!formData.razao_social.trim()) {
-      showError("A Razão Social é obrigatória.");
-      return;
-    }
-
     setIsSaving(true);
 
     // Garante que a role 'administrador' não seja sobrescrita se já estiver definida
     const roleToUpdate = initialProfile.role === 'administrador' ? 'administrador' : formData.role;
 
     const updateData = {
-      nome_fantasia: isCnpj ? formData.nome_fantasia : null, // Define como null se for CPF
+      nome_fantasia: formData.nome_fantasia,
       razao_social: formData.razao_social,
-      cnpj: cleanedCnpj,
+      cnpj: formData.cnpj,
       telefone: formData.telefone,
       endereco: formData.endereco,
-      cep: formData.cep,
+      cep: formData.cep, // NOVO CAMPO
       role: roleToUpdate,
     };
 
@@ -115,47 +93,31 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
   // Se o usuário for administrador, ele não pode mudar sua própria role aqui.
   const isRoleFieldDisabled = initialProfile.role === 'administrador';
-  
-  // Determina se o campo nome fantasia é obrigatório (baseado no tamanho do CNPJ/CPF)
-  const isCnpj = formData.cnpj.replace(/\D/g, '').length > 11;
-  const nomeFantasiaRequired = isCnpj;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="nome_fantasia">Nome Fantasia (Loja) {nomeFantasiaRequired && <span className="text-red-500">*</span>}</Label>
-          <Input 
-            id="nome_fantasia" 
-            placeholder={nomeFantasiaRequired ? "Obrigatório para CNPJ" : "Opcional para CPF"}
-            value={formData.nome_fantasia} 
-            onChange={handleChange} 
-            required={nomeFantasiaRequired}
-          />
+          <Label htmlFor="nome_fantasia">Nome Fantasia (Loja)</Label>
+          <Input id="nome_fantasia" required value={formData.nome_fantasia} onChange={handleChange} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="razao_social">Razão Social / Nome Completo <span className="text-red-500">*</span></Label>
+          <Label htmlFor="razao_social">Razão Social</Label>
           <Input id="razao_social" required value={formData.razao_social} onChange={handleChange} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="cnpj">CPF/CNPJ <span className="text-red-500">*</span></Label>
-          <Input 
-            id="cnpj" 
-            required 
-            value={formData.cnpj} 
-            onChange={handleChange} 
-            placeholder="Apenas números"
-          />
+          <Label htmlFor="cnpj">CPF/CNPJ</Label>
+          <Input id="cnpj" required value={formData.cnpj} onChange={handleChange} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="telefone">Telefone</Label>
           <Input id="telefone" value={formData.telefone} onChange={handleChange} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="role">Tipo de Usuário <span className="text-red-500">*</span></Label>
+          <Label htmlFor="role">Tipo de Usuário</Label>
           <Select 
             required 
             value={formData.role} 
@@ -182,7 +144,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
           <Input id="endereco" value={formData.endereco} onChange={handleChange} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="cep">CEP de Origem/Entrega <span className="text-red-500">*</span></Label>
+          <Label htmlFor="cep">CEP de Origem/Entrega</Label>
           <Input 
             id="cep" 
             value={formData.cep} 

@@ -137,7 +137,7 @@ const GerenciarUsuariosAdmin: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome Fantasia / Nome Completo</TableHead>
+                      <TableHead>Nome Fantasia</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>CPF/CNPJ</TableHead>
                       <TableHead className="text-center">Role</TableHead>
@@ -147,7 +147,7 @@ const GerenciarUsuariosAdmin: React.FC = () => {
                   <TableBody>
                     {usuarios.map((usuario) => (
                       <TableRow key={usuario.id}>
-                        <TableCell className="font-medium">{usuario.nome_fantasia || usuario.razao_social || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">{usuario.nome_fantasia || 'N/A'}</TableCell>
                         <TableCell>{usuario.email}</TableCell>
                         <TableCell>{usuario.cnpj || 'N/A'}</TableCell>
                         <TableCell className="text-center">
