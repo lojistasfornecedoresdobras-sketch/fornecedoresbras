@@ -4,6 +4,7 @@ export interface FotoProduto {
   id: string;
   url: string;
   ordem: number;
+  file?: File; // Adiciona o objeto File para pré-visualização (blob URL)
 }
 
 export interface Produto {

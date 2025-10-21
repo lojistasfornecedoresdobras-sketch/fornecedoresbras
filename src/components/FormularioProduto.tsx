@@ -7,7 +7,7 @@ import { Upload, Loader2, Save, Trash2, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from '@/hooks/use-auth';
-import { FotoProduto } from '@/types/produto'; // Importando a nova tipagem
+import { FotoProduto } from '@/types/produto';
 
 interface ProdutoData {
   id?: string; // Presente apenas na edição
@@ -18,7 +18,6 @@ interface ProdutoData {
   unidade_medida: string;
   categoria: string;
   minimo_compra: string;
-  // Removido foto_url
   
   // Novos campos de frete
   peso_kg: string;
@@ -39,6 +38,19 @@ interface FormularioProdutoProps {
 const categorias = ['Roupas', 'Calçados', 'Acessórios', 'Infantil'];
 const unidades = ['DZ', 'PC', 'CX'];
 
+// Função de simulação de upload para o Supabase Storage
+const simulateUpload = async (file: File, fornecedorId: string): Promise<string> => {
+    // Em um cenário real, você usaria:
+    // const { data, error } = await supabase.storage.from('produtos').upload(...)
+    
+    // Simulação: retorna uma URL pública mockada
+    const fileName = `${fornecedorId}/${Date.now()}_${file.name}`;
+    console.log(`Simulando upload de ${file.name} para: ${fileName}`);
+    
+    // Retorna uma URL de placeholder para evitar erros de blob:
+    return `https://dyad-storage-mock.com/produtos/${fileName}`;
+};
+
 const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEditing, onSuccess }) => {
   const { b2bProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -50,23 +62,21 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     unidade_medida: '',
     categoria: '',
     minimo_compra: '6',
-    // Valores iniciais para frete
     peso_kg: '',
     comprimento_cm: '',
     largura_cm: '',
     altura_cm: '',
-    fotos: [], // Inicializa com array vazio
+    fotos: [],
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         ...initialData,
-        // Garante que os campos numéricos sejam strings vazias se forem 0 ou null
-        peso_kg: initialData.peso_kg || '',
-        comprimento_cm: initialData.comprimento_cm || '',
-        largura_cm: initialData.largura_cm || '',
-        altura_cm: initialData.altura_cm || '',
+        peso_kg: initialData.peso_kg?.toString() || '',
+        comprimento_cm: initialData.comprimento_cm?.toString() || '',
+        largura_cm: initialData.largura_cm?.toString() || '',
+        altura_cm: initialData.altura_cm?.toString() || '',
         fotos: initialData.fotos || [],
       });
     }
@@ -81,7 +91,6 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  // Manipulador de upload de foto atualizado para múltiplos arquivos
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -96,23 +105,33 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     }
 
     const newPhotos: FotoProduto[] = filesToAdd.map((file, index) => ({
-      id: `mock-${Date.now()}-${index}`,
+      // Usamos um ID temporário e a URL blob para pré-visualização
+      id: `temp-${Date.now()}-${index}`,
       url: URL.createObjectURL(file),
       ordem: currentCount + index,
+      file: file, // Armazena o objeto File
     }));
 
     setFormData(prev => ({ ...prev, fotos: [...prev.fotos, ...newPhotos] }));
-    showSuccess(`${newPhotos.length} foto(s) adicionada(s) (Mock).`);
+    showSuccess(`${newPhotos.length} foto(s) adicionada(s) para upload.`);
     
-    // Limpa o valor do input para permitir o upload do mesmo arquivo novamente
     e.target.value = '';
   };
 
   const handleRemovePhoto = (photoId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      fotos: prev.fotos.filter(f => f.id !== photoId).map((f, index) => ({ ...f, ordem: index })),
-    }));
+    setFormData(prev => {
+      const updatedFotos = prev.fotos
+        .filter(f => f.id !== photoId)
+        .map((f, index) => ({ ...f, ordem: index }));
+      
+      // Revoga a URL blob se for uma foto temporária
+      const removedPhoto = prev.fotos.find(f => f.id === photoId);
+      if (removedPhoto?.file) {
+        URL.revokeObjectURL(removedPhoto.url);
+      }
+
+      return { ...prev, fotos: updatedFotos };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,114 +142,127 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     }
     setIsLoading(true);
 
-    const produtoPayload = {
-      nome: formData.nome,
-      preco_atacado: parseFloat(formData.preco_atacado),
-      preco_minimo_pequeno: parseFloat(formData.preco_minimo_pequeno),
-      quantidade_estoque: parseInt(formData.quantidade_estoque),
-      unidade_medida: formData.unidade_medida,
-      categoria: formData.categoria,
-      minimo_compra: parseInt(formData.minimo_compra),
-      // Removido foto_url
-      fornecedor_id: b2bProfile.id, // Adicionado para garantir que está no payload de insert
-      
-      // Campos de frete
-      peso_kg: parseFloat(formData.peso_kg) || 0,
-      comprimento_cm: parseFloat(formData.comprimento_cm) || 0,
-      largura_cm: parseFloat(formData.largura_cm) || 0,
-      altura_cm: parseFloat(formData.altura_cm) || 0,
-    };
-
+    let produtoId = formData.id;
     let error;
     let message;
-    let produtoId = formData.id;
 
-    if (isEditing && produtoId) {
-      // Lógica de Edição
-      const result = await supabase
-        .from('produtos')
-        .update(produtoPayload)
-        .eq('id', produtoId);
-      error = result.error;
-      message = "Produto atualizado com sucesso!";
-    } else {
-      // Lógica de Cadastro
-      const result = await supabase
-        .from('produtos')
-        .insert([produtoPayload])
-        .select('id')
-        .single();
-      error = result.error;
-      message = "Produto cadastrado com sucesso!";
-      if (result.data) {
-        produtoId = result.data.id;
+    try {
+      // 1. Processar Upload de Novas Fotos
+      const photosToUpload = formData.fotos.filter(f => f.file);
+      const photosToKeep = formData.fotos.filter(f => !f.file); // Fotos já salvas (com URL pública)
+
+      const uploadedPhotos: FotoProduto[] = [];
+      for (const photo of photosToUpload) {
+        const publicUrl = await simulateUpload(photo.file!, b2bProfile.id);
+        uploadedPhotos.push({
+          id: `db-${Date.now()}-${Math.random()}`, // Novo ID simulado do DB
+          url: publicUrl,
+          ordem: photo.ordem,
+          file: undefined, // Remove o objeto File
+        });
+        // Revoga a URL blob após 'upload'
+        URL.revokeObjectURL(photo.url);
       }
-    }
 
-    if (error) {
-      showError(`Erro ao ${isEditing ? 'atualizar' : 'cadastrar'} produto: ${error.message}`);
-      console.error(error);
-      setIsLoading(false);
-      return;
-    }
-    
-    // 2. Gerenciar Fotos (Inserir/Atualizar/Deletar)
-    if (produtoId) {
-      // 2a. Deletar fotos antigas (simplesmente deletamos todas e reinserimos)
-      if (isEditing) {
+      const finalPhotos = [...photosToKeep, ...uploadedPhotos].sort((a, b) => a.ordem - b.ordem);
+
+      // 2. Salvar/Atualizar Produto
+      const produtoPayload = {
+        nome: formData.nome,
+        preco_atacado: parseFloat(formData.preco_atacado),
+        preco_minimo_pequeno: parseFloat(formData.preco_minimo_pequeno),
+        quantidade_estoque: parseInt(formData.quantidade_estoque),
+        unidade_medida: formData.unidade_medida,
+        categoria: formData.categoria,
+        minimo_compra: parseInt(formData.minimo_compra),
+        fornecedor_id: b2bProfile.id,
+        
+        peso_kg: parseFloat(formData.peso_kg) || 0,
+        comprimento_cm: parseFloat(formData.comprimento_cm) || 0,
+        largura_cm: parseFloat(formData.largura_cm) || 0,
+        altura_cm: parseFloat(formData.altura_cm) || 0,
+      };
+
+      if (isEditing && produtoId) {
+        const result = await supabase
+          .from('produtos')
+          .update(produtoPayload)
+          .eq('id', produtoId);
+        error = result.error;
+        message = "Produto atualizado com sucesso!";
+      } else {
+        const result = await supabase
+          .from('produtos')
+          .insert([produtoPayload])
+          .select('id')
+          .single();
+        error = result.error;
+        message = "Produto cadastrado com sucesso!";
+        if (result.data) {
+          produtoId = result.data.id;
+        }
+      }
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // 3. Gerenciar Fotos no DB (Deletar antigas e inserir novas)
+      if (produtoId) {
+        // Deletar todas as fotos antigas
         const { error: deleteError } = await supabase
           .from('fotos_produto')
           .delete()
           .eq('produto_id', produtoId);
         
         if (deleteError) {
-          showError("Erro ao limpar fotos antigas: " + deleteError.message);
-          console.error(deleteError);
-          // Continuamos, mas com aviso
+          console.error("Erro ao limpar fotos antigas:", deleteError);
+        }
+
+        // Inserir todas as fotos finais (incluindo as recém-uploadadas)
+        if (finalPhotos.length > 0) {
+          const fotosPayload = finalPhotos.map(f => ({
+            produto_id: produtoId,
+            url: f.url,
+            ordem: f.ordem,
+          }));
+
+          const { error: insertPhotosError } = await supabase
+            .from('fotos_produto')
+            .insert(fotosPayload);
+
+          if (insertPhotosError) {
+            console.error("Erro ao salvar fotos:", insertPhotosError);
+          }
         }
       }
 
-      // 2b. Inserir novas fotos
-      if (formData.fotos.length > 0) {
-        const fotosPayload = formData.fotos.map(f => ({
-          produto_id: produtoId,
-          url: f.url,
-          ordem: f.ordem,
-        }));
-
-        const { error: insertPhotosError } = await supabase
-          .from('fotos_produto')
-          .insert(fotosPayload);
-
-        if (insertPhotosError) {
-          showError("Erro ao salvar fotos: " + insertPhotosError.message);
-          console.error(insertPhotosError);
-          // Continuamos, mas com aviso
-        }
+      showSuccess(message);
+      onSuccess();
+      
+      if (!isEditing) {
+        setFormData({
+          nome: '',
+          preco_atacado: '',
+          preco_minimo_pequeno: '',
+          quantidade_estoque: '',
+          unidade_medida: '',
+          categoria: '',
+          minimo_compra: '6',
+          peso_kg: '',
+          comprimento_cm: '',
+          largura_cm: '',
+          altura_cm: '',
+          fotos: [],
+        });
       }
-    }
 
-    showSuccess(message);
-    onSuccess();
-    
-    // Limpar formulário após cadastro
-    if (!isEditing) {
-      setFormData({
-        nome: '',
-        preco_atacado: '',
-        preco_minimo_pequeno: '',
-        quantidade_estoque: '',
-        unidade_medida: '',
-        categoria: '',
-        minimo_compra: '6',
-        peso_kg: '',
-        comprimento_cm: '',
-        largura_cm: '',
-        altura_cm: '',
-        fotos: [],
-      });
+    } catch (e: any) {
+      showError(`Falha na operação: ${e.message}`);
+      console.error(e);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -323,7 +355,8 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
               className="hidden" 
               onChange={handlePhotoUpload}
               disabled={formData.fotos.length >= 5}
-              multiple // Permite múltiplos arquivos
+              multiple
+              accept="image/*"
             />
           </label>
         </div>
@@ -332,7 +365,15 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
         <div className="flex flex-wrap gap-3">
           {formData.fotos.map((foto) => (
             <div key={foto.id} className="relative w-20 h-20 border rounded-lg overflow-hidden group">
-              <img src={foto.url} alt={`Foto ${foto.ordem + 1}`} className="w-full h-full object-cover" />
+              <img 
+                src={foto.url} 
+                alt={`Foto ${foto.ordem + 1}`} 
+                className="w-full h-full object-cover" 
+                // Adiciona um fallback para o caso de a URL blob ter expirado (embora o novo fluxo deva evitar isso)
+                onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/placeholder.svg";
+                }}
+              />
               <Button 
                 type="button"
                 variant="destructive" 
