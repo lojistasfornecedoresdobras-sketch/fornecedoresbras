@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 const requisitosComuns = [
-  "Possuir CNPJ ativo e válido.",
-  "Ser uma empresa registrada (MEI, ME, EPP, etc.).",
+  "Possuir CPF ou CNPJ ativo e válido.",
+  "Ser uma empresa registrada (MEI, ME, EPP, etc.) ou Microempreendedor Individual (CPF/CNPJ).",
   "Email B2B para comunicação.",
 ];
 
@@ -21,6 +21,7 @@ const requisitosFornecedor = [
   "Ser um fornecedor ou fabricante com sede no Brás ou região metropolitana.",
   "Capacidade de processar pedidos em volume (DZ/CX).",
   "Compromisso com prazos de envio e qualidade dos produtos.",
+  "Possuir conta de Recebedor (Recipient ID) no Pagar.me para split de pagamento.",
 ];
 
 const Requisitos: React.FC = () => {
@@ -88,7 +89,7 @@ const Requisitos: React.FC = () => {
             </div>
             
             <p className="text-sm text-red-500 flex items-center">
-                <XCircle className="w-4 h-4 mr-1" /> Não aceitamos cadastros de CPF ou pessoas físicas.
+                <XCircle className="w-4 h-4 mr-1" /> O cadastro exige um documento fiscal (CPF ou CNPJ) válido para transações B2B.
             </p>
           </CardContent>
         </Card>

@@ -139,7 +139,7 @@ const GerenciarUsuariosAdmin: React.FC = () => {
                     <TableRow>
                       <TableHead>Nome Fantasia</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>CNPJ</TableHead>
+                      <TableHead>CPF/CNPJ</TableHead>
                       <TableHead className="text-center">Role</TableHead>
                       <TableHead className="text-center">Ações</TableHead>
                     </TableRow>

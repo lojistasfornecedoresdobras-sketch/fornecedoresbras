@@ -109,7 +109,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="cnpj">CNPJ</Label>
+          <Label htmlFor="cnpj">CPF/CNPJ</Label>
           <Input id="cnpj" required value={formData.cnpj} onChange={handleChange} />
         </div>
         <div className="space-y-2">

@@ -142,7 +142,7 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cnpj">CNPJ</Label>
+                <Label htmlFor="cnpj">CPF/CNPJ</Label>
                 <Input id="cnpj" required value={formData.cnpj || ''} onChange={handleChange} />
               </div>
               <div className="space-y-2">
@@ -175,7 +175,7 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
               <Input id="endereco" value={formData.endereco || ''} onChange={handleChange} />
             </div>
             
-            {/* NOVO CAMPO: ID do Recebedor Pagar.me */}
+            {/* ID do Recebedor Pagar.me */}
             <div className="space-y-2 pt-4 border-t">
               <Label htmlFor="pagarme_recipient_id">ID do Recebedor Pagar.me (Apenas Fornecedor/Admin)</Label>
               <Input 

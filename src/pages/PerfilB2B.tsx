@@ -49,7 +49,7 @@ const PerfilB2B: React.FC = () => {
                   telefone: null, 
                   endereco: null,
                   cep: null,
-                  pagarme_recipient_id: null, // CORREÇÃO: Adicionando o campo 'pagarme_recipient_id'
+                  pagarme_recipient_id: null,
                 }}
                 onProfileUpdated={(newProfile) => {
                   // Força o recarregamento do perfil após a atualização
@@ -107,7 +107,7 @@ const PerfilB2B: React.FC = () => {
             ) : (
               <>
                 <p><strong>Email:</strong> {b2bProfile.email}</p>
-                <p><strong>CNPJ:</strong> {b2bProfile.cnpj || 'Não informado'}</p>
+                <p><strong>CPF/CNPJ:</strong> {b2bProfile.cnpj || 'Não informado'}</p>
                 <p><strong>Razão Social:</strong> {b2bProfile.razao_social || 'Não informado'}</p>
                 <p><strong>Telefone:</strong> {b2bProfile.telefone || 'Não informado'}</p>
                 <p><strong>Endereço:</strong> {b2bProfile.endereco || 'Não informado'}</p>
