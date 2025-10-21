@@ -237,6 +237,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
       showSuccess(message);
       
       // Se estiver editando, atualiza o estado local para refletir as URLs salvas (placeholders)
+      // Isso garante que, se o usuário não for redirecionado, ele veja o placeholder.
       if (isEditing) {
         setFormData(prev => ({
             ...prev,
@@ -275,6 +276,18 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handler para garantir que o placeholder seja exibido se a URL for o placeholder
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    // Se a URL já for o placeholder, não tente carregar novamente para evitar loop
+    if (target.src.endsWith('/placeholder.svg')) {
+        // Se for o placeholder, apenas garante que o elemento não tenha uma URL quebrada
+        target.style.opacity = '1'; // Garante visibilidade se o navegador estiver escondendo
+        return;
+    }
+    target.src = "/placeholder.svg";
   };
 
   return (
@@ -381,10 +394,7 @@ const FormularioProduto: React.FC<FormularioProdutoProps> = ({ initialData, isEd
                 src={foto.url} 
                 alt={`Foto ${foto.ordem + 1}`} 
                 className="w-full h-full object-cover" 
-                // Adiciona um fallback para o caso de a URL blob ter expirado (embora o novo fluxo deva evitar isso)
-                onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/placeholder.svg";
-                }}
+                onError={handleImageError}
               />
               <Button 
                 type="button"
