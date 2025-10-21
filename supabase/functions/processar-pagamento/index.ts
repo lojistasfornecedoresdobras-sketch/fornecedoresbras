@@ -121,15 +121,19 @@ serve(async (req) => {
     }
 
     // Busca a taxa de comissão ativa (Usando adminSupabase para ignorar RLS)
-    const { data: taxaData, error: taxaError } = await adminSupabase
+    const { data: taxas, error: taxaError } = await adminSupabase
       .from('taxas_comissao')
       .select('taxa')
       .eq('ativo', true)
       .order('data_definicao', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    const taxaComissao = taxaData?.taxa || 0; // 0% se não houver taxa definida
+    if (taxaError) {
+        console.error('Error fetching commission rate:', taxaError);
+        // Se houver erro de DB, usamos 0% e logamos o erro.
+    }
+    
+    const taxaComissao = taxas?.[0]?.taxa || 0; // Usa 0% se não houver taxa definida ou se houver erro.
 
     // 2b. Buscar ID do Recebedor do Fornecedor (Usando adminSupabase para ignorar RLS)
     const { data: fornecedorProfile, error: fornecedorError } = await adminSupabase
