@@ -13,7 +13,8 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useB2BUserNames } from '@/hooks/use-b2b-user-names';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import FreteCalculator from '@/components/FreteCalculator'; // Importando o novo componente
+import FreteCalculator from '@/components/FreteCalculator';
+import PixPaymentModal from '@/components/PixPaymentModal'; // Importando o modal
 
 // Tipagem para o agrupamento
 interface CartItemWithFornecedor {
@@ -53,6 +54,14 @@ interface SelectedFreteMap {
     [fornecedorId: string]: FreteRate | null;
 }
 
+interface PixDetails {
+  pedidoId: string;
+  pagarmeId: string;
+  totalPago: string;
+  qr_code: string;
+  qr_code_text: string;
+}
+
 const MIN_UNITS_PER_SUPPLIER = 6;
 
 const Checkout: React.FC = () => {
@@ -63,6 +72,11 @@ const Checkout: React.FC = () => {
   const [cepDestino, setCepDestino] = useState('');
   const [groupedOrdersState, setGroupedOrdersState] = useState<GroupedOrder[]>([]);
   const [selectedFretes, setSelectedFretes] = useState<SelectedFreteMap>({});
+  
+  // Estado do PIX
+  const [pixDetails, setPixDetails] = useState<PixDetails | null>(null);
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+
 
   const formatCurrency = (value: number) => {
     return `R$${value.toFixed(2).replace('.', ',')}`;
@@ -134,6 +148,11 @@ const Checkout: React.FC = () => {
     return groupedOrdersState.every(group => group.totalUnits >= MIN_UNITS_PER_SUPPLIER);
   }, [groupedOrdersState]);
 
+  const handlePaymentConfirmed = () => {
+    clearCart();
+    navigate('/meus-pedidos');
+  };
+
   const handleFinalizeOrder = async () => {
     if (!b2bProfile || !user || groupedOrdersState.length === 0) {
       showError("Erro: Dados do usuário ou carrinho inválidos.");
@@ -151,6 +170,7 @@ const Checkout: React.FC = () => {
     setIsProcessing(true);
     let successfulOrders = 0;
     const createdOrderIds: string[] = [];
+    let firstPixDetails: PixDetails | null = null;
 
     try {
       // 1. Criar todos os pedidos e itens primeiro (Status: Aguardando Pagamento)
@@ -241,15 +261,34 @@ const Checkout: React.FC = () => {
           showError(`Falha ao processar pagamento para ${order.fornecedorNome}. O pedido foi criado, mas o pagamento falhou.`);
         } else {
           successfulOrders++;
+          
+          // Captura os detalhes do PIX do primeiro pedido para exibição
+          if (!firstPixDetails) {
+            firstPixDetails = {
+                pedidoId: order.pedidoId,
+                pagarmeId: paymentData.pagarmeId,
+                totalPago: paymentData.split.totalPago,
+                qr_code: paymentData.pix_details.qr_code,
+                qr_code_text: paymentData.pix_details.qr_code_text,
+            };
+          }
         }
       }
 
       if (successfulOrders > 0) {
-        showSuccess(`Sucesso! ${successfulOrders} pedido(s) processado(s) e pago(s).`);
-        clearCart();
-        navigate('/meus-pedidos'); // Redireciona para a página de pedidos do lojista
+        // Se houver apenas um pedido, exibe o PIX. Se houver múltiplos, exibe o PIX do primeiro
+        // e informa o usuário que ele deve verificar a página de pedidos para os demais.
+        if (firstPixDetails) {
+            setPixDetails(firstPixDetails);
+            setIsPixModalOpen(true);
+        } else {
+            // Caso raro onde pedidos foram criados mas o pagamento falhou para todos
+            showError("Pedidos criados, mas o pagamento falhou para todos. Verifique a página de pedidos.");
+            clearCart();
+            navigate('/meus-pedidos');
+        }
       } else {
-        showError("Nenhum pagamento foi processado com sucesso. Verifique o status dos pedidos.");
+        showError("Nenhum pedido foi processado com sucesso. Verifique o status dos pedidos.");
       }
       
     } catch (error: any) {
@@ -420,6 +459,14 @@ const Checkout: React.FC = () => {
         </p>
         <MadeWithDyad />
       </footer>
+      
+      {/* Modal de Pagamento PIX */}
+      <PixPaymentModal
+        isOpen={isPixModalOpen}
+        onClose={() => setIsPixModalOpen(false)}
+        pixDetails={pixDetails}
+        onPaymentConfirmed={handlePaymentConfirmed}
+      />
     </div>
   );
 };
