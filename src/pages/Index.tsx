@@ -3,14 +3,15 @@ import HeaderAtacado from "@/components/HeaderAtacado";
 import HeroCarrossel from "@/components/HeroCarrossel";
 import ProductCardAtacado from "@/components/ProductCardAtacado";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Shirt, ShoppingBag, Star, Truck, Loader2, Zap, Package, DollarSign } from "lucide-react";
+import { ArrowRight, Shirt, ShoppingBag, Truck, Loader2, DollarSign, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { Link } from 'react-router-dom';
 import { FotoProduto } from '@/types/produto';
+import PromoBanner from "@/components/PromoBanner";
 
 interface Produto {
   id: string;
@@ -103,6 +104,9 @@ const Index = () => {
         <Link to="/catalogo">
           <HeroCarrossel />
         </Link>
+        
+        {/* NOVO: PROMO BANNER */}
+        <PromoBanner />
 
         {/* DESTAQUE: POR QUE COMPRAR NO ATACADO BRÁS? */}
         <section className="text-center">
@@ -174,10 +178,18 @@ const Index = () => {
 
         {/* CATEGORIAS EM DESTAQUE */}
         <section>
-          <h2 className="text-2xl font-bold mb-4 text-atacado-primary">
-            EXPLORE POR CATEGORIA
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-atacado-primary">
+              EXPLORE POR CATEGORIA
+            </h2>
+            <Link to="/catalogo">
+              <Button variant="link" className="text-atacado-accent hover:text-orange-600">
+                Ver Todas as Categorias <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
             {categorias.length > 0 ? (
               categorias.map((category, index) => (
                 <Link 
@@ -185,12 +197,23 @@ const Index = () => {
                   to={`/catalogo?categoria=${category}`}
                   className="flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
                 >
-                  <Shirt className="w-8 h-8 text-atacado-accent mb-2" /> {/* Usando Shirt como ícone genérico */}
+                  <Shirt className="w-8 h-8 text-atacado-accent mb-2" />
                   <span className="font-medium text-sm text-atacado-primary text-center">{category}</span>
                 </Link>
               ))
             ) : (
-              <p className="text-gray-500 col-span-4">Nenhuma categoria encontrada.</p>
+              <p className="text-gray-500 col-span-5">Nenhuma categoria encontrada.</p>
+            )}
+            
+            {/* Card de CTA para mais categorias se houver espaço */}
+            {categorias.length > 0 && (
+                <Link 
+                  to="/catalogo"
+                  className="hidden lg:flex flex-col items-center justify-center p-4 bg-atacado-primary text-white rounded-lg shadow hover:bg-atacado-primary/90 transition-colors cursor-pointer border border-gray-200"
+                >
+                  <ShoppingBag className="w-8 h-8 mb-2" />
+                  <span className="font-medium text-sm text-center">Ver Mais</span>
+                </Link>
             )}
           </div>
         </section>
