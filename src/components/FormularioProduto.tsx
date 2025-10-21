@@ -38,14 +38,14 @@ interface FormularioProdutoProps {
 const categorias = ['Roupas', 'Calçados', 'Acessórios', 'Infantil'];
 const unidades = ['DZ', 'PC', 'CX'];
 
-// URL de placeholder garantida
+// URL de placeholder garantida (usada apenas como fallback visual)
 const MOCK_IMAGE_URL = 'https://via.placeholder.com/100x100?text=B2B';
 
 // Função REAL de upload para o Supabase Storage
 const uploadImage = async (file: File, fornecedorId: string): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-    // Caminho: fornecedorId/produtoId/nome_do_arquivo
+    // Caminho: fornecedorId/nome_do_arquivo
     const filePath = `${fornecedorId}/${fileName}`; 
 
     const { data, error } = await supabase.storage
