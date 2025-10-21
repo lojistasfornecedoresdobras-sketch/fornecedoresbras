@@ -49,6 +49,8 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       // Remove caracteres não numéricos e limita a 8 dígitos
       processedValue = value.replace(/\D/g, '').substring(0, 8);
     }
+    // Não aplicamos formatação ao CNPJ/CPF aqui, apenas removemos caracteres não numéricos se necessário.
+    // Se o usuário digitar pontos/hífens, o Supabase deve aceitar se a coluna for TEXT/VARCHAR.
 
     setFormData(prev => ({ ...prev, [id]: processedValue }));
   };
@@ -84,7 +86,7 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     const updateData = {
       nome_fantasia: toNullIfEmpty(formData.nome_fantasia),
       razao_social: toNullIfEmpty(formData.razao_social),
-      cnpj: formData.cnpj,
+      cnpj: formData.cnpj, // Enviando o valor como está
       telefone: toNullIfEmpty(formData.telefone),
       endereco: toNullIfEmpty(formData.endereco),
       cep: formData.cep,
@@ -101,8 +103,9 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
       .single();
 
     if (error) {
+      // Captura e exibe a mensagem de erro exata do Supabase/PostgreSQL
       showError("Erro ao atualizar perfil: " + error.message);
-      console.error(error);
+      console.error("Erro detalhado do Supabase:", error);
     } else {
       showSuccess("Perfil atualizado com sucesso!");
       onProfileUpdated({ ...initialProfile, ...data });
