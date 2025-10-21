@@ -66,15 +66,18 @@ const AdminEditUserModal: React.FC<AdminEditUserModalProps> = ({ userId, isOpen,
     if (!userId) return;
 
     setIsSaving(true);
+    
+    // Função auxiliar para converter string vazia para null
+    const toNullIfEmpty = (value: string | null | undefined) => (value === '' ? null : value);
 
     const updateData = {
-      nome_fantasia: formData.nome_fantasia,
-      razao_social: formData.razao_social,
+      nome_fantasia: toNullIfEmpty(formData.nome_fantasia),
+      razao_social: toNullIfEmpty(formData.razao_social),
       cnpj: formData.cnpj,
-      telefone: formData.telefone,
-      endereco: formData.endereco,
+      telefone: toNullIfEmpty(formData.telefone),
+      endereco: toNullIfEmpty(formData.endereco),
       role: formData.role,
-      pagarme_recipient_id: formData.pagarme_recipient_id, // NOVO CAMPO
+      pagarme_recipient_id: toNullIfEmpty(formData.pagarme_recipient_id), // NOVO CAMPO
     };
 
     const { error } = await supabase

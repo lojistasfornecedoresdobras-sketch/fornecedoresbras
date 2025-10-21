@@ -64,13 +64,16 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
     // Garante que a role 'administrador' não seja sobrescrita se já estiver definida
     const roleToUpdate = initialProfile.role === 'administrador' ? 'administrador' : formData.role;
 
+    // Função auxiliar para converter string vazia para null
+    const toNullIfEmpty = (value: string | null | undefined) => (value === '' ? null : value);
+
     const updateData = {
-      nome_fantasia: formData.nome_fantasia,
-      razao_social: formData.razao_social,
-      cnpj: formData.cnpj,
-      telefone: formData.telefone,
-      endereco: formData.endereco,
-      cep: formData.cep, // NOVO CAMPO
+      nome_fantasia: toNullIfEmpty(formData.nome_fantasia),
+      razao_social: toNullIfEmpty(formData.razao_social),
+      cnpj: formData.cnpj, // CNPJ é obrigatório no formulário
+      telefone: toNullIfEmpty(formData.telefone),
+      endereco: toNullIfEmpty(formData.endereco),
+      cep: formData.cep, // CEP é obrigatório no formulário
       role: roleToUpdate,
     };
 
@@ -101,7 +104,6 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
           <Label htmlFor="nome_fantasia">Nome Fantasia / Nome Completo (Se CPF)</Label>
           <Input 
             id="nome_fantasia" 
-            // Removido 'required' para permitir flexibilidade com CPF
             value={formData.nome_fantasia} 
             onChange={handleChange} 
           />
@@ -110,7 +112,6 @@ const FormularioPerfilB2B: React.FC<FormularioPerfilB2BProps> = ({ initialProfil
           <Label htmlFor="razao_social">Razão Social (Opcional se CPF)</Label>
           <Input 
             id="razao_social" 
-            // Removido 'required' para permitir flexibilidade com CPF
             value={formData.razao_social} 
             onChange={handleChange} 
           />
