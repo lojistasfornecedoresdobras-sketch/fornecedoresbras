@@ -39,6 +39,7 @@ const App = () => (
           <CartProvider>
             <Routes>
               {/* Rotas Públicas (Acessíveis mesmo se não autenticado) */}
+              <Route path="/" element={<Index />} /> {/* Movido para cá */}
               <Route path="/login" element={<Login />} />
               <Route path="/ajuda" element={<Ajuda />} />
               <Route path="/como-funciona" element={<ComoFunciona />} />
@@ -46,7 +47,6 @@ const App = () => (
               
               {/* Rotas Protegidas (Acesso Geral B2B) */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<Index />} /> {/* Movido para dentro do ProtectedRoute */}
                 <Route path="/perfil" element={<PerfilB2B />} />
                 <Route path="/carrinho" element={<Carrinho />} />
                 <Route path="/checkout" element={<Checkout />} />
