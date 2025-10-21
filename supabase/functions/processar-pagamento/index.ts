@@ -12,7 +12,10 @@ const corsHeaders = {
 // @ts-ignore
 const PAGARME_API_KEY = Deno.env.get('PAGARME_API_KEY');
 
-// Cliente Supabase com Service Role Key (para operações administrativas, como buscar a taxa de comissão)
+// ID MOCK do Recebedor da Plataforma (Admin)
+const PLATFORM_RECIPIENT_ID = 're_PLATFORM_MOCK_ID';
+
+// Cliente Supabase com Service Role Key (para operações administrativas, como buscar a taxa de comissão e dados do fornecedor)
 // @ts-ignore
 const adminSupabase = createClient(
     // @ts-ignore
@@ -33,7 +36,6 @@ async function mockPagarmeTransaction(transactionData: any) {
         amount: transactionData.totalComFrete * 100, // Pagar.me usa centavos
         payment_method: 'pix', // Simula Pix
         installments: 1, 
-        // Em um cenário real, aqui viria o payload do Pix (QR Code, Pix Copy/Paste)
         pix_code: '00020126330014BR.GOV.BCB.PIX0111123456789015204000053039865802BR5925NOME DO RECEBEDOR MOCK6008BRASILIA62070503***63041D3D',
     };
 }
@@ -81,7 +83,7 @@ serve(async (req) => {
   }
 
   try {
-    // 2. Buscar Pedido e Taxa de Comissão Ativa (Usando adminSupabase para garantir acesso à taxa)
+    // 2. Buscar Pedido e Taxa de Comissão Ativa
     
     // Busca o pedido (apenas para verificar status e total_atacado)
     const { data: pedido, error: pedidoError } = await supabase
@@ -110,6 +112,22 @@ serve(async (req) => {
 
     const taxaComissao = taxaData?.taxa || 0; // 0% se não houver taxa definida
 
+    // 2b. Buscar ID do Recebedor do Fornecedor (Usando adminSupabase para ignorar RLS)
+    const { data: fornecedorProfile, error: fornecedorError } = await adminSupabase
+        .from('usuarios')
+        .select('pagarme_recipient_id')
+        .eq('id', pedido.fornecedor_id)
+        .single();
+
+    if (fornecedorError || !fornecedorProfile?.pagarme_recipient_id) {
+        console.error('Fornecedor Recipient ID not found:', fornecedorError);
+        // Em um cenário real, isso seria um erro crítico
+        return new Response(JSON.stringify({ error: 'ID do Recebedor do Fornecedor não encontrado. O split não pode ser realizado.' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    
+    const fornecedorRecipientId = fornecedorProfile.pagarme_recipient_id;
+
+
     // 3. Calcular Split
     const valorProdutos = pedido.total_atacado;
     const valorFrete = totalComFrete - valorProdutos;
@@ -124,19 +142,16 @@ serve(async (req) => {
     const transactionData = {
         pedidoId: pedidoId,
         totalComFrete: totalComFrete,
-        // Em um cenário real, aqui iriam os dados do cartão/boleto
-        // e os IDs dos recebedores (fornecedor e plataforma)
+        // Usando os IDs de recebedor reais/mockados
         splits: [
-            { recipient_id: pedido.fornecedor_id, amount: Math.round(splitFornecedor * 100) },
-            { recipient_id: 'PLATFORM_ID_MOCK', amount: Math.round(splitPlataforma * 100) },
+            { recipient_id: fornecedorRecipientId, amount: Math.round(splitFornecedor * 100) },
+            { recipient_id: PLATFORM_RECIPIENT_ID, amount: Math.round(splitPlataforma * 100) },
         ]
     };
 
     const pagarmeResponse = await mockPagarmeTransaction(transactionData);
 
     if (pagarmeResponse.status !== 'paid') {
-        // Se estivéssemos simulando o fluxo completo do Pix, o status seria 'pending' aqui.
-        // Mas para o checkout, assumimos sucesso.
         throw new Error(`Pagamento recusado pelo Pagar.me. Status: ${pagarmeResponse.status}`);
     }
 
